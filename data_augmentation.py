@@ -1,0 +1,71 @@
+import albumentations as A
+from albumentations.augmentations.transforms import Normalize, GaussNoise
+from albumentations.core.composition import OneOf
+from albumentations.augmentations import functional as F
+from albumentations.pytorch import ToTensorV2
+from PIL import Image
+import numpy as np
+import os
+
+AUGMENTED_IMAGE_DIR = "data/training/augmented/images"
+AUGMENTED_MASK_DIR = "data/training/augmented/masks"
+IMAGE_DIR = "data/training/images"  
+MASK_DIR = "data/training/groundtruth_binarize"  
+
+os.makedirs(AUGMENTED_IMAGE_DIR, exist_ok=True)
+os.makedirs(AUGMENTED_MASK_DIR, exist_ok=True)
+
+
+augmentation_pipeline = A.Compose(
+    [
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.5),
+        A.RandomRotate90(p=0.5),
+        A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=0.5),
+        OneOf(
+            [
+                A.GaussNoise(var_limit=(10, 50), p=0.5), 
+            ],
+            p=0.7,
+        ),
+    ]
+)
+
+def augment_and_save(image_dir, mask_dir, augmented_image_dir, augmented_mask_dir, num_augmentations=3):
+    '''
+    Augments the data and saves it
+    '''
+    image_files = os.listdir(image_dir)
+    
+    for image_name in image_files:
+        image_path = os.path.join(image_dir, image_name)
+        mask_path = os.path.join(mask_dir, image_name) 
+        
+        image = np.array(Image.open(image_path).convert("RGB"))
+        mask = np.array(Image.open(mask_path))
+        
+        assert set(np.unique(mask)).issubset({0, 255}), f"Mask {image_name} is not binary!"
+        
+        for i in range(num_augmentations):
+
+            augmented = augmentation_pipeline(image=image, mask=mask)
+            augmented_image = augmented['image']
+            augmented_mask = augmented['mask']
+            
+            aug_image_path = os.path.join(augmented_image_dir, f"{os.path.splitext(image_name)[0]}_aug_{i}.png")
+            aug_mask_path = os.path.join(augmented_mask_dir, f"{os.path.splitext(image_name)[0]}_aug_{i}.png")
+            
+            Image.fromarray(augmented_image).save(aug_image_path)
+            Image.fromarray(augmented_mask).save(aug_mask_path)
+            
+        print(f"Augmented {image_name} and saved {num_augmentations} variations.")
+
+if __name__ == "__main__":
+
+    augment_and_save(
+        image_dir=IMAGE_DIR,
+        mask_dir=MASK_DIR,
+        augmented_image_dir=AUGMENTED_IMAGE_DIR,
+        augmented_mask_dir=AUGMENTED_MASK_DIR,
+        num_augmentations=5
+    )
