@@ -5,6 +5,7 @@ import torch.optim as optim
 import numpy as np
 from torch.utils.data import DataLoader
 
+
 class SegFormer:
     def __init__(self, model_name="nvidia/segformer-b0-finetuned-ade-512-512", num_labels=1, image_size=512):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -12,7 +13,7 @@ class SegFormer:
         # Initialize the model
         self.model = SegformerForSemanticSegmentation.from_pretrained(
             model_name,
-            num_labels=num_labels  # Binary segmentation (road vs. non-road)
+            num_labels=num_labels
         ).to(self.device)
         
         # Initialize the feature extractor
@@ -36,11 +37,13 @@ class SegFormer:
         :param image_size: Tuple of (height, width) to resize the mask
         :return: Preprocessed tensor
         """
-        mask = mask.resize(image_size)  # Resize mask to match input size
-        mask = torch.tensor((np.array(mask) / 255.0), dtype=torch.float)  # Normalize to [0, 1]
-        return mask.unsqueeze(0).unsqueeze(0).to(self.device)  # Add batch and channel dimensions
+        # Resize mask to match 512x512 input size of model
+        mask = mask.resize((512, 512))  
+        # Normalize the mask
+        mask = torch.tensor((np.array(mask) / 255.0), dtype=torch.float)
+        return mask.unsqueeze(0).unsqueeze(0).to(self.device)
     
-    def train(self, dataloader, epochs=10, learning_rate=1e-4):
+    def train(self, dataloader, criterion, epochs=10, learning_rate=1e-4):
         """
         Fine-tune the SegFormer model on a dataset.
         :param dataloader: DataLoader object providing image-mask pairs
@@ -48,8 +51,8 @@ class SegFormer:
         :param learning_rate: Learning rate for the optimizer
         """
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
-        criterion = nn.BCEWithLogitsLoss()  # Binary segmentation
-        
+        criterion = criterion
+
         self.model.train()
         for epoch in range(epochs):
             epoch_loss = 0.0
@@ -60,7 +63,7 @@ class SegFormer:
                 
                 # Forward pass
                 outputs = self.model(pixel_values=images)
-                logits = outputs.logits  # Shape: [batch_size, num_labels, height, width]
+                logits = outputs.logits
                 
                 # Compute loss
                 loss = criterion(logits, masks)
