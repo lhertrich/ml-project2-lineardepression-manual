@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
 
 
-root_dir = "data/training/"
+root_dir = "../data/training/"
 image_dir = root_dir + "augmented/images/"
 gt_dir = root_dir + "augmented/masks/"
 
@@ -196,4 +196,4 @@ if __name__ == "__main__":
     print("True positive rate = " + str(TPR))
 
     F1_score = f1_score(Y_test, Z)
-    print("F1 score =" + str(F1_score))
+    print("F1 score = " + str(F1_score))
