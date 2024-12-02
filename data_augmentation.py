@@ -10,10 +10,54 @@ import os
 AUGMENTED_IMAGE_DIR = "data/training/augmented/images"
 AUGMENTED_MASK_DIR = "data/training/augmented/masks"
 IMAGE_DIR = "data/training/images"  
-MASK_DIR = "data/training/groundtruth_binarize"  
+MASK_DIR = "data/training/groundtruth"  
+PROCESS_MASK_DIR = "data/training/groundtruth_binarize"
 
 os.makedirs(AUGMENTED_IMAGE_DIR, exist_ok=True)
 os.makedirs(AUGMENTED_MASK_DIR, exist_ok=True)
+os.makedirs(PROCESS_MASK_DIR, exist_ok=True)
+
+def binarize_mask(mask, threshold=128):
+    """
+    Converts a non-binary mask into a binary mask using a threshold.
+    
+    Parameters:
+        mask (numpy array): Input mask.
+        threshold (int): Threshold for binarization (default: 128).
+        
+    Returns:
+        binary_mask (numpy array): Binarized mask with values 0 and 1.
+    """
+    if mask.max() > 1:
+        mask = mask / 255.0 
+    
+    binary_mask = (mask > threshold / 255.0).astype(np.uint8)
+    return binary_mask
+
+
+def process_masks(mask_dir, output_dir, threshold=128):
+    """
+    Processes all masks in a directory to ensure they are binary.
+    
+    Parameters:
+        mask_dir (str): Path to directory containing masks.
+        output_dir (str): Path to directory to save processed masks.
+        threshold (int): Threshold for binarization.
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    mask_files = os.listdir(mask_dir)
+    
+    for mask_file in mask_files:
+        mask_path = os.path.join(mask_dir, mask_file)
+        mask = np.array(Image.open(mask_path).convert('L')) 
+        
+        binary_mask = binarize_mask(mask, threshold)
+        
+        binary_mask_image = Image.fromarray((binary_mask * 255).astype(np.uint8))
+        binary_mask_image.save(os.path.join(output_dir, mask_file))
+
 
 
 augmentation_pipeline = A.Compose(
@@ -61,10 +105,12 @@ def augment_and_save(image_dir, mask_dir, augmented_image_dir, augmented_mask_di
         print(f"Augmented {image_name} and saved {num_augmentations} variations.")
 
 if __name__ == "__main__":
+    
+    process_masks(MASK_DIR, PROCESS_MASK_DIR, threshold=128)
 
     augment_and_save(
         image_dir=IMAGE_DIR,
-        mask_dir=MASK_DIR,
+        mask_dir=PROCESS_MASK_DIR,
         augmented_image_dir=AUGMENTED_IMAGE_DIR,
         augmented_mask_dir=AUGMENTED_MASK_DIR,
         num_augmentations=5
