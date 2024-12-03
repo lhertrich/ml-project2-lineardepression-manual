@@ -1,8 +1,9 @@
-from transformers import SegformerForSemanticSegmentation, SegformerFeatureExtractor
+from transformers import SegformerForSemanticSegmentation, SegformerImageProcessor
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 
@@ -13,11 +14,20 @@ class SegFormer:
         # Initialize the model
         self.model = SegformerForSemanticSegmentation.from_pretrained(
             model_name,
-            num_labels=num_labels
+            num_labels=num_labels,
+            ignore_mismatched_sizes=True
         ).to(self.device)
         
+        # Reinitialize the decode head classifier for binary segmentation
+        self.model.decode_head.classifier = torch.nn.Conv2d(
+            in_channels=256,  # Feature dimension
+            out_channels=num_labels,  # Number of output labels
+            kernel_size=1
+        ).to(self.device)
+        self.model.decode_head.bias = torch.nn.Parameter(torch.zeros(num_labels)).to(self.device)
+
         # Initialize the feature extractor
-        self.feature_extractor = SegformerFeatureExtractor(
+        self.feature_extractor = SegformerImageProcessor(
             do_normalize=True, do_resize=True, size=image_size
         )
     
@@ -43,7 +53,7 @@ class SegFormer:
         mask = torch.tensor((np.array(mask) / 255.0), dtype=torch.float)
         return mask.unsqueeze(0).unsqueeze(0).to(self.device)
     
-    def train(self, dataloader, criterion, epochs=10, learning_rate=1e-4):
+    def train(self, dataloader, criterion, epochs=10, learning_rate=1e-4, save_path="segformer.pt"):
         """
         Fine-tune the SegFormer model on a dataset.
         :param dataloader: DataLoader object providing image-mask pairs
@@ -64,9 +74,13 @@ class SegFormer:
                 # Forward pass
                 outputs = self.model(pixel_values=images)
                 logits = outputs.logits
-                
+                resized_logits = F.interpolate(logits, size=masks.shape[2:], mode="bilinear", align_corners=False)
+                resized_logits = resized_logits.reshape(masks.shape)
+
+                masks = masks.contiguous().float()
+
                 # Compute loss
-                loss = criterion(logits, masks)
+                loss = criterion(resized_logits, masks)
                 epoch_loss += loss.item()
                 
                 # Backward pass and optimization
@@ -75,6 +89,9 @@ class SegFormer:
                 optimizer.step()
             
             print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss/len(dataloader):.4f}")
+
+        torch.save(self.model.state_dict(), save_path)
+        print(f"Model saved to {save_path}")
     
     def predict(self, image):
         """

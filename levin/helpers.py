@@ -5,48 +5,6 @@ import os, sys
 from PIL import Image
 
 
-def binarize_mask(mask, threshold=128):
-    """
-    Converts a non-binary mask into a binary mask using a threshold.
-    
-    Parameters:
-        mask (numpy array): Input mask.
-        threshold (int): Threshold for binarization (default: 128).
-        
-    Returns:
-        binary_mask (numpy array): Binarized mask with values 0 and 1.
-    """
-    if mask.max() > 1:
-        mask = mask / 255.0 
-    
-    binary_mask = (mask > threshold / 255.0).astype(np.uint8)
-    return binary_mask
-
-
-def process_masks(mask_dir, output_dir, threshold=128):
-    """
-    Processes all masks in a directory to ensure they are binary.
-    
-    Parameters:
-        mask_dir (str): Path to directory containing masks.
-        output_dir (str): Path to directory to save processed masks.
-        threshold (int): Threshold for binarization.
-    """
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
-    mask_files = os.listdir(mask_dir)
-    
-    for mask_file in mask_files:
-        mask_path = os.path.join(mask_dir, mask_file)
-        mask = np.array(Image.open(mask_path).convert('L')) 
-        
-        binary_mask = binarize_mask(mask, threshold)
-        
-        binary_mask_image = Image.fromarray((binary_mask * 255).astype(np.uint8))
-        binary_mask_image.save(os.path.join(output_dir, mask_file))
-
-
 def load_image(infilename):
     data = mpimg.imread(infilename)
     return data
@@ -91,3 +49,11 @@ def img_crop(im, w, h):
     return list_patches
 
 
+def write_predictions_to_file(predictions, labels, filename):
+    max_labels = np.argmax(labels, 1)
+    max_predictions = np.argmax(predictions, 1)
+    file = open(filename, "w")
+    n = predictions.shape[0]
+    for i in range(0, n):
+        file.write(max_labels(i) + " " + max_predictions(i))
+    file.close()

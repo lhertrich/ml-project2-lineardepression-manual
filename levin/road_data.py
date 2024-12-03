@@ -5,34 +5,27 @@ import torch
 import os
 
 class RoadSegmentationDataset(Dataset):
-    def __init__(self, image_dir, gt_dir, transform, patch_size=512):
+    def __init__(self, image_dir, mask_dir, transform=None, target_transform=None):
         self.image_dir = image_dir
-        self.gt_dir = gt_dir
-        self.files = os.listdir(image_dir)
+        self.mask_dir = mask_dir
+        self.image_filenames = sorted(os.listdir(image_dir))
+        self.mask_filenames = sorted(os.listdir(mask_dir))
         self.transform = transform
-        self.patch_size = patch_size
+        self.target_transform = target_transform
 
     def __len__(self):
-        return len(self.files)
+        return len(self.image_filenames)
 
     def __getitem__(self, idx):
-        # Load image and ground truth
-        img_path = f"{self.image_dir}/{self.files[idx]}"
-        gt_path = f"{self.gt_dir}/{self.files[idx]}"
+        image_path = os.path.join(self.image_dir, self.image_filenames[idx])
+        mask_path = os.path.join(self.mask_dir, self.mask_filenames[idx])
+
+        image = Image.open(image_path).convert("RGB")  # Ensure image is RGB
+        mask = Image.open(mask_path).convert("L")  # Ensure mask is grayscale
+
+        if self.transform:
+            image = self.transform(image)
+        if self.target_transform:
+            mask = self.target_transform(mask)
         
-        img = Image.open(img_path).convert("RGB")
-        gt = Image.open(gt_path).convert("L")
-
-        # Resize both to patch_size
-        img = img.resize((self.patch_size, self.patch_size))
-        gt = gt.resize((self.patch_size, self.patch_size))
-
-        # Apply any transformations (e.g., normalization)
-        img = np.array(img) / 255.0
-        gt = np.array(gt) / 255.0
-
-        # Convert to PyTorch tensors
-        img = torch.tensor(img, dtype=torch.float).permute(2, 0, 1)
-        gt = torch.tensor(gt, dtype=torch.float).unsqueeze(0)
-
-        return img, gt
+        return image, mask
