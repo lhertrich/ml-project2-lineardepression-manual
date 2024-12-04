@@ -4,7 +4,6 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 
 
 class SegFormer:
@@ -40,7 +39,7 @@ class SegFormer:
         encoding = self.feature_extractor(images=image, return_tensors="pt")
         return encoding["pixel_values"].to(self.device)
     
-    def preprocess_mask(self, mask, image_size):
+    def preprocess_mask(self, mask):
         """
         Preprocess a ground truth mask.
         :param mask: PIL Image or numpy array
