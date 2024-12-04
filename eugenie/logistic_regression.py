@@ -116,6 +116,72 @@ def make_img_overlay(img, predicted_img):
     new_img = Image.blend(background, overlay, 0.2)
     return new_img
 
+# Get paths for test images
+def get_test_images(test_folder):
+    """
+    Recursively retrieve all test image file paths from the test folder.
+    :param test_folder: Path to the folder containing test images in subfolders.
+    :return: List of file paths to test images.
+    """
+    image_paths = []
+    for root, _, files in os.walk(test_folder):
+        for file in files:
+            if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                image_paths.append(os.path.join(root, file))
+    return image_paths
+
+
+# Assign a label to a patch based on the foreground threshold
+def patch_to_label(patch):
+    df = np.mean(patch)
+    if df > foreground_threshold:
+        return 1
+    else:
+        return 0
+
+
+# Generate submission strings from a single mask image
+def mask_to_submission_strings(image_filename, img_number):
+    """
+    Reads a single mask image and outputs the strings for the submission file.
+    :param image_filename: Path to the mask image file.
+    :param img_number: Image number (used in the submission ID).
+    :yield: Submission strings for each 16x16 patch.
+    """
+    im = mpimg.imread(image_filename)
+    print(f"Image size: {im.shape}")
+    patch_size = 16
+    height, width = im.shape[:2]
+
+    # Iterate over the full image resolution
+    for y in range(0, height, patch_size):
+        for x in range(0, width, patch_size):
+            patch = im[y:y + patch_size, x:x + patch_size]
+            label = patch_to_label(patch)
+            yield("{:03d}_{}_{},".format(img_number, y, x) + str(label))
+
+
+# Convert all masks into a single submission file
+def masks_to_submission(submission_filename, image_filenames):
+    """
+    Converts predicted masks into a submission file.
+    :param submission_filename: Path to save the submission file.
+    :param image_filenames: List of mask image file paths.
+    """
+    with open(submission_filename, 'w') as f:
+        f.write('id,prediction\n')  # Write header
+        for img_number, image_filename in enumerate(image_filenames, start=1):
+            f.writelines('{}\n'.format(s) for s in mask_to_submission_strings(image_filename, img_number))
+
+
+def label_to_img(imgwidth, imgheight, w, h, labels):
+    im = np.zeros([imgwidth, imgheight])
+    idx = 0
+    for i in range(0, imgheight, h):
+        for j in range(0, imgwidth, w):
+            im[j : j + w, i : i + h] = labels[idx]
+            idx = idx + 1
+    return im
 
 
 if __name__ == "__main__":
@@ -197,3 +263,53 @@ if __name__ == "__main__":
 
     F1_score = f1_score(Y_test, Z)
     print("F1 score = " + str(F1_score))
+
+    paths = get_test_images("./data/test_set_images")
+    paths.sort(key=lambda x: int(os.path.basename(x).split('_')[1].split('.')[0]))
+
+    # Define paths
+    test_images_folder = "/Users/eugeniecyrot/Documents/epfl/Master/MA3/ML/ml-project2-lineardepression-manual/data/test_set_images"
+    output_masks_folder = "predictions"
+    submission_file = "logistic_submission.csv"
+
+    os.makedirs(output_masks_folder, exist_ok=True)
+
+    # Retrieve and sort test image paths (simplified sorting)
+    test_image_paths = get_test_images(test_images_folder)
+    test_image_paths.sort(key=lambda x: int(os.path.basename(x).split('_')[1].split('.')[0]))
+
+    # Process each test image
+    for idx, image_path in enumerate(test_image_paths, start=1):
+        image = load_image(image_path)
+        n_image = len(image)
+        img_patches = [img_crop(image[i], patch_size, patch_size) for i in range(n_image)]
+        img_patches = np.asarray(
+        [
+            img_patches[i][j]
+            for i in range(len(img_patches))
+            for j in range(len(img_patches[i]))
+        ]
+        )
+        A = np.asarray([extract_features_2d(img_patches[i]) for i in range(len(img_patches))])
+        predicted_mask = logreg.predict(A) 
+        # Resize image
+        w = image.shape[0]
+        h = image.shape[1]
+        predicted_m = label_to_img(w, h, patch_size, patch_size, predicted_mask)
+
+        # Save resized mask
+        mask_path = os.path.join(output_masks_folder, f"mask_{idx:03d}.png")
+        Image.fromarray((predicted_m * 255).astype(np.uint8)).save(mask_path)
+        
+    predicted_mask_paths = []
+    for f in os.listdir(output_masks_folder):
+        try:
+            # Validate the second part of the filename can be converted to an integer
+            int(os.path.basename(f).split('_')[1].split('.')[0])
+            predicted_mask_paths.append(os.path.join(output_masks_folder, f))
+        except (IndexError, ValueError):
+            print(f"Skipping file: {f} (invalid format)")
+
+    # Generate submission file
+    predicted_mask_paths = sorted(predicted_mask_paths, key=lambda x: int(os.path.basename(x).split('_')[1].split('.')[0]))
+    masks_to_submission(submission_file, predicted_mask_paths)
