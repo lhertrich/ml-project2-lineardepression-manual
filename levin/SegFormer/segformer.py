@@ -68,7 +68,6 @@ class SegFormer:
             print(f"Logits shape: {logits.shape}")  # Shape should be [batch_size, num_labels, 512, 512]
 
             # Inspect intermediate shapes (optional, based on model internals)
-            print(f"Decoder head input shape: {self.model.decode_head.hidden_states.shape}")
             print(f"Decoder head output shape: {self.model.decode_head.logits.shape}")
     
     def train(self, dataloader, criterion, epochs=10, learning_rate=1e-4, save_path="segformer.pt"):
