@@ -23,7 +23,7 @@ class RoadSegmentationDataset(Dataset):
         image = Image.open(image_path).convert("RGB")  # Ensure image is RGB
         mask = Image.open(mask_path).convert("L")  # Ensure mask is grayscale
 
-        pixel_values = self.feature_extractor(images=image, return_tensors="pt")["pixel_values"].squeeze(0)
+        pixel_values = self.feature_extractor(images=image, return_tensors="pt")["pixel_values"]
 
         if self.mask_transform:
             mask = self.mask_transform(mask)
