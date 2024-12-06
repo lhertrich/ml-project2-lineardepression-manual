@@ -67,6 +67,7 @@ class SegFormer:
             epoch_loss = 0.0
             for batch in dataloader:
                 images, masks = batch
+
                 images = images.to(self.device)
                 masks = masks.to(self.device)
                 

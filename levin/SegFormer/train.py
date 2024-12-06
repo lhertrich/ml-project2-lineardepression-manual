@@ -47,6 +47,8 @@ mask_filenames = sorted(os.listdir(mask_dir))
 train_dataset = RoadSegmentationDataset(
     image_dir=image_dir, 
     mask_dir=mask_dir, 
+    image_filenames=image_filenames,
+    mask_filenames=mask_filenames,
     feature_extractor=feature_extractor, 
     mask_transform=mask_transform
 )
