@@ -100,8 +100,7 @@ class SegFormer:
         """
         self.model.eval()
         with torch.no_grad():
-            pixel_values = self.preprocess_image(image)
-            outputs = self.model(pixel_values=pixel_values)
+            outputs = self.model(pixel_values=image)
             logits = outputs.logits  # Shape: [batch_size, num_labels, height, width]
             predicted_mask = torch.sigmoid(logits).squeeze().cpu().numpy()  # Sigmoid for binary
             return (predicted_mask > 0.5).astype(np.uint8)  # Threshold to binary mask

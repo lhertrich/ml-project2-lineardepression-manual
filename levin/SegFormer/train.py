@@ -1,6 +1,7 @@
 from levin.SegFormer.segformer import SegFormer
 from levin.road_data import RoadSegmentationDataset
 from torch.utils.data import DataLoader
+from transformers import SegformerImageProcessor
 import torchvision.transforms as T
 import os
 import torch
@@ -23,11 +24,11 @@ if not os.path.exists(mask_dir):
     raise FileNotFoundError(f"Mask directory not found: {mask_dir}")
 
 # Define transforms for images and masks
-image_transform = T.Compose([
-    T.Resize((512, 512)),  # Resize images to 512x512
-    T.ToTensor(),          # Convert to PyTorch tensor
-    T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])  # Normalize to [-1, 1]
-])
+feature_extractor = SegformerImageProcessor(
+    do_normalize=True,
+    do_resize=True,
+    size=512
+)
 
 mask_transform = T.Compose([
     T.Resize((512, 512)),  # Resize masks to 512x512
@@ -46,8 +47,8 @@ mask_filenames = sorted(os.listdir(mask_dir))
 train_dataset = RoadSegmentationDataset(
     image_dir=image_dir, 
     mask_dir=mask_dir, 
-    transform=image_transform, 
-    target_transform=mask_transform
+    feature_extractor=feature_extractor, 
+    mask_transform=mask_transform
 )
 
 # test_dataset = RoadSegmentationDataset(
