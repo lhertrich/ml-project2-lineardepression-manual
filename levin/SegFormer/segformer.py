@@ -52,6 +52,25 @@ class SegFormer:
         mask = torch.tensor((np.array(mask) / 255.0), dtype=torch.float)
         return mask.unsqueeze(0).unsqueeze(0).to(self.device)
     
+    def debug_model_output(self, pixel_values):
+        """
+        Debug model to inspect intermediate output shapes.
+        :param pixel_values: Tensor of shape [batch_size, num_channels, height, width]
+        """
+        with torch.no_grad():
+            self.model.eval()
+
+            # Forward pass through the model
+            outputs = self.model(pixel_values=pixel_values)
+
+            # Logits are the final output of the model
+            logits = outputs.logits
+            print(f"Logits shape: {logits.shape}")  # Shape should be [batch_size, num_labels, 512, 512]
+
+            # Inspect intermediate shapes (optional, based on model internals)
+            print(f"Decoder head input shape: {self.model.decode_head.hidden_states.shape}")
+            print(f"Decoder head output shape: {self.model.decode_head.logits.shape}")
+    
     def train(self, dataloader, criterion, epochs=10, learning_rate=1e-4, save_path="segformer.pt"):
         """
         Fine-tune the SegFormer model on a dataset.
