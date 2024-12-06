@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 
 class SegFormer:
-    def __init__(self, model_name="nvidia/segformer-b0-finetuned-ade-512-512", num_labels=1, image_size=512):
+    def __init__(self, model_name="nvidia/segformer-b0-finetuned-ade-512-512", num_labels=1):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Initialize the model
@@ -18,40 +18,22 @@ class SegFormer:
         ).to(self.device)
         
         # Reinitialize the decode head classifier for binary segmentation
-        self.model.decode_head.classifier = torch.nn.Conv2d(
-            in_channels=256,  # Feature dimension
-            out_channels=num_labels,  # Number of output labels
-            kernel_size=1
+        self.model.decode_head.classifier = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                in_channels=256,  # Feature dimension from the encoder
+                out_channels=num_labels,  # Number of output labels
+                kernel_size=1,  # 1x1 convolution to map features to logits
+            ),
+            torch.nn.Upsample(
+                size=(512, 512),  # Upsample to the target resolution
+                mode='bilinear',
+                align_corners=False
+            )
         ).to(self.device)
-        self.model.decode_head.bias = torch.nn.Parameter(torch.zeros(num_labels)).to(self.device)
 
-        # Initialize the feature extractor
-        self.feature_extractor = SegformerImageProcessor(
-            do_normalize=True, do_resize=True, size=image_size
-        )
+        self.model.decode_head.bias = torch.nn.Parameter(torch.zeros(num_labels)).to(self.device)
     
-    def preprocess_image(self, image):
-        """
-        Preprocess a single image for the model using the feature extractor.
-        :param image: PIL Image or numpy array
-        :return: Preprocessed tensor
-        """
-        encoding = self.feature_extractor(images=image, return_tensors="pt")
-        return encoding["pixel_values"].to(self.device)
-    
-    def preprocess_mask(self, mask):
-        """
-        Preprocess a ground truth mask.
-        :param mask: PIL Image or numpy array
-        :param image_size: Tuple of (height, width) to resize the mask
-        :return: Preprocessed tensor
-        """
-        # Resize mask to match 512x512 input size of model
-        mask = mask.resize((512, 512))  
-        # Normalize the mask
-        mask = torch.tensor((np.array(mask) / 255.0), dtype=torch.float)
-        return mask.unsqueeze(0).unsqueeze(0).to(self.device)
-    
+
     def debug_model_output(self, pixel_values):
         """
         Debug model to inspect intermediate output shapes.
@@ -66,9 +48,6 @@ class SegFormer:
             # Logits are the final output of the model
             logits = outputs.logits
             print(f"Logits shape: {logits.shape}")  # Shape should be [batch_size, num_labels, 512, 512]
-
-            # Inspect intermediate shapes (optional, based on model internals)
-            print(f"Decoder head output shape: {self.model.decode_head.logits.shape}")
     
     def train(self, dataloader, criterion, epochs=10, learning_rate=1e-4, save_path="segformer.pt"):
         """
@@ -111,15 +90,22 @@ class SegFormer:
         torch.save(self.model.state_dict(), save_path)
         print(f"Model saved to {save_path}")
     
-    def predict(self, image):
+    def predict(self, pixel_values, threshold=0.5):
         """
         Perform prediction on a single image.
-        :param image: PIL Image or numpy array
-        :return: Predicted mask (numpy array)
+        :param image: pixel_values
+        :return: Predicted mask torch tensor
         """
         self.model.eval()
         with torch.no_grad():
-            outputs = self.model(pixel_values=image)
+            # Forward pass
+            outputs = self.model(pixel_values=pixel_values)  # Assumes pixel_values is preprocessed
             logits = outputs.logits  # Shape: [batch_size, num_labels, height, width]
-            probabilities = torch.sigmoid(logits).cpu().numpy()  # Sigmoid for binary
-            return (probabilities > 0.5).astype(np.uint8)  # Threshold to binary mask
+
+            # Apply sigmoid activation to get probabilities
+            probabilities = torch.sigmoid(logits)
+
+            # Apply threshold to get binary masks
+            binary_masks = (probabilities > threshold).to(torch.uint8)  # Convert to uint8 for binary masks
+
+        return binary_masks  # Return as Torch tensor
