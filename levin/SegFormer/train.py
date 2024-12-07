@@ -1,5 +1,5 @@
 from levin.SegFormer.segformer_b0 import SegFormer
-from levin.road_data import RoadSegmentationDataset
+from levin.dataset import RoadSegmentationDataset
 from torch.utils.data import DataLoader
 from transformers import SegformerImageProcessor
 import torchvision.transforms as T
