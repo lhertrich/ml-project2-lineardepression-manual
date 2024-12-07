@@ -12,6 +12,7 @@ class SegFormer:
         
         # Keep track of losses
         self.losses = {}
+        self.validation_losses = {}
 
         # Initialize the model
         self.model = SegformerForSemanticSegmentation.from_pretrained(
@@ -50,7 +51,36 @@ class SegFormer:
             logits = outputs.logits
             print(f"Logits shape: {logits.shape}")  # Shape should be [batch_size, num_labels, 512, 512]
     
-    def train(self, dataloader, criterion, epochs=10, learning_rate=1e-4, save_path="segformer.pt"):
+    def validate(self, validationloader, criterion):
+        """
+        Compute validation loss over the validation set.
+        """
+        self.model.eval()
+        validation_loss = 0.0
+        total_val_samples = 0
+
+        with torch.no_grad():
+            for batch in validationloader:
+                images, masks = batch
+                images = images.to(self.device)
+                masks = masks.to(self.device)
+
+                # Forward pass
+                outputs = self.model(pixel_values=images)
+                logits = outputs.logits
+                resized_logits = F.interpolate(logits, size=masks.shape[2:], mode="bilinear", align_corners=False)
+
+                masks = masks.contiguous().float()
+
+                # Compute loss
+                loss = criterion(resized_logits, masks)
+                validation_loss += loss.item() * len(images)
+                total_val_samples += len(images)
+
+        # Return average validation loss
+        return validation_loss / total_val_samples
+
+    def train(self, dataloader, validationloader, criterion, epochs=10, learning_rate=1e-4, save_path="segformer.pt"):
         """
         Fine-tune the SegFormer model on a dataset.
         :param dataloader: DataLoader object providing image-mask pairs
@@ -59,10 +89,10 @@ class SegFormer:
         """
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
         criterion = criterion
-        epoch_losses = {}
         self.model.train()
         for epoch in range(epochs):
             epoch_loss = 0.0
+            total_samples = 0
             for batch in dataloader:
                 images, masks = batch
 
@@ -78,19 +108,27 @@ class SegFormer:
 
                 # Compute loss
                 loss = criterion(resized_logits, masks)
-                epoch_loss += loss.item()
+                epoch_loss += loss.item() * len(images)
+                total_samples += len(images)
                 
                 # Backward pass and optimization
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                
 
-            epoch_loss /= sum(len(batch[0]) for batch in dataloader)
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss:.4f}")
-            epoch_losses[epoch+1] = epoch_loss
+            avg_loss = epoch_loss / total_samples
+            self.losses[epoch + 1] = avg_loss
+            avg_validation_loss = self.validate(validationloader, criterion)
+            self.validation_losses[epoch + 1] = avg_validation_loss
 
-        torch.save(self.model.state_dict(), save_path)
-        self.losses = epoch_losses
+            print(f"Epoch {epoch+1}/{epochs}, Training Loss: {avg_loss:.4f}, Validation Loss: {avg_validation_loss:.4f}")
+
+        torch.save({
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'epoch_losses': self.losses
+        }, save_path)
         print(f"Model saved to {save_path}")
     
     def predict(self, pixel_values, threshold=0.5):
