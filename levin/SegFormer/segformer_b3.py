@@ -7,9 +7,12 @@ import torch.nn.functional as F
 
 
 class SegFormer:
-    def __init__(self, model_name="nvidia/segformer-b0-finetuned-ade-512-512", num_labels=1):
+    def __init__(self, model_name="nvidia/segformer-b3-finetuned-ade-512-512", num_labels=1):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
+        # Keep track of losses
+        self.losses = {}
+
         # Initialize the model
         self.model = SegformerForSemanticSegmentation.from_pretrained(
             model_name,
@@ -20,7 +23,7 @@ class SegFormer:
         # Reinitialize the decode head classifier for binary segmentation
         self.model.decode_head.classifier = torch.nn.Sequential(
             torch.nn.Conv2d(
-                in_channels=256,  # Feature dimension from the encoder
+                in_channels=768,  # Feature dimension from the encoder
                 out_channels=num_labels,  # Number of output labels
                 kernel_size=1,  # 1x1 convolution to map features to logits
             ),
@@ -30,8 +33,6 @@ class SegFormer:
                 align_corners=False
             )
         ).to(self.device)
-
-        self.model.decode_head.bias = torch.nn.Parameter(torch.zeros(num_labels)).to(self.device)
     
 
     def debug_model_output(self, pixel_values):
@@ -58,7 +59,7 @@ class SegFormer:
         """
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
         criterion = criterion
-
+        epoch_losses = {}
         self.model.train()
         for epoch in range(epochs):
             epoch_loss = 0.0
@@ -72,7 +73,6 @@ class SegFormer:
                 outputs = self.model(pixel_values=images)
                 logits = outputs.logits
                 resized_logits = F.interpolate(logits, size=masks.shape[2:], mode="bilinear", align_corners=False)
-                resized_logits = resized_logits.reshape(masks.shape)
 
                 masks = masks.contiguous().float()
 
@@ -84,10 +84,13 @@ class SegFormer:
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-            
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss/len(dataloader):.4f}")
+
+            epoch_loss /= sum(len(batch[0]) for batch in dataloader)
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss:.4f}")
+            epoch_losses[epoch+1] = epoch_loss
 
         torch.save(self.model.state_dict(), save_path)
+        self.losses = epoch_losses
         print(f"Model saved to {save_path}")
     
     def predict(self, pixel_values, threshold=0.5):
