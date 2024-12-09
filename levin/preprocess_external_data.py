@@ -62,6 +62,27 @@ def resize_image(image_path, target_size=(400, 400)):
     return np.array(image)
 
 
+def is_valid_mask(mask, road_threshold=0.5):
+    """
+    Check if a mask is realistic based on the percentage of red and blue pixels.
+    
+    Parameters:
+        mask (numpy.ndarray): The mask to validate (assumes an RGB format).
+        red_threshold (float): Maximum allowed proportion of red pixels (0-1).
+        blue_threshold (float): Maximum allowed proportion of blue pixels (0-1).
+    
+    Returns:
+        bool: True if the mask is valid, False otherwise.
+    """
+    total_pixels = mask.shape[0] * mask.shape[1]
+    
+    # Extract RGB channels
+    road_pixels = np.sum(mask == 255)
+
+    road_ratio = road_pixels / total_pixels
+    # Validate against threshold
+    return road_ratio <= road_threshold
+
 def process_data(existing_augmented, external_data, output_dir):
     # Create output directories
     os.makedirs(os.path.join(output_dir, 'images'), exist_ok=True)
@@ -87,6 +108,10 @@ def process_data(existing_augmented, external_data, output_dir):
                     resized_image = resize_image(image_path)
                     resized_mask = binarize_and_resize_mask(mask_path)
 
+                    if not is_valid_mask(resized_mask):
+                        print(f"Skipping invalid mask: {mask_path}")
+                        continue
+
                     # Apply augmentations
                     augmented_images, augmented_masks = apply_augmentations(resized_image, resized_mask)
 
@@ -102,11 +127,47 @@ def process_data(existing_augmented, external_data, output_dir):
                         Image.fromarray(aug_mask).save(os.path.join(output_dir, 'masks', f"{base_name}_aug_{i}.png"))
 
 
-#existing_augmented = "../data/training/augmented"
-#external_data = "../data/external_data"
-#output_dir = "../data/complete_data_augmented"
+def process_data_city(existing_augmented, external_data, output_dir, city):
+    # Create output directories
+    os.makedirs(os.path.join(output_dir, 'images'), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, 'masks'), exist_ok=True)
+
+    # Copy existing augmented data
+    shutil.copytree(os.path.join(existing_augmented, 'images'), os.path.join(output_dir, 'images'), dirs_exist_ok=True)
+    shutil.copytree(os.path.join(existing_augmented, 'masks'), os.path.join(output_dir, 'masks'), dirs_exist_ok=True)
+
+    print("copied existing augmented data")
+
+    # Process external data
+    city_folder = os.path.join(external_data, city)
+    if os.path.isdir(city_folder):
+        print(f"Processing {city} images")
+        for file in os.listdir(city_folder):
+            if file.endswith('_image.png'):
+                image_path = os.path.join(city_folder, file)
+                mask_path = os.path.join(city_folder, file.replace('_image.png', '_labels.png'))
+
+                # Resize image and mask
+                resized_image = resize_image(image_path)
+                resized_mask = binarize_and_resize_mask(mask_path)
+
+                if not is_valid_mask(resized_mask):
+                    print(f"Skipping invalid mask: {mask_path}")
+                    continue
+
+                # Apply augmentations
+                augmented_images, augmented_masks = apply_augmentations(resized_image, resized_mask)
+
+                # Save original and augmented data
+                base_name = os.path.splitext(file)[0]
+
+                # Save augmented images and masks
+                for i, (aug_image, aug_mask) in enumerate(zip(augmented_images, augmented_masks)):
+                    Image.fromarray(aug_image).save(os.path.join(output_dir, 'images', f"{base_name}_aug_{i}.png"))
+                    Image.fromarray(aug_mask).save(os.path.join(output_dir, 'masks', f"{base_name}_aug_{i}.png"))
+
 
 existing_augmented = os.path.abspath("data/training/augmented")
 external_data = os.path.abspath("data/external_data")
-output_dir = os.path.abspath("data/complete_data_augmented")
-process_data(existing_augmented, external_data, output_dir)
+output_dir = os.path.abspath("data/complete_data_augmented_chicago")
+process_data_city(existing_augmented, external_data, output_dir, "chicago")
