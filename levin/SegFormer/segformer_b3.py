@@ -51,6 +51,7 @@ class SegFormer:
             logits = outputs.logits
             print(f"Logits shape: {logits.shape}")  # Shape should be [batch_size, num_labels, 512, 512]
     
+
     def validate(self, validationloader, criterion):
         """
         Compute validation loss over the validation set.
@@ -80,7 +81,8 @@ class SegFormer:
         # Return average validation loss
         return validation_loss / total_val_samples
 
-    def train(self, dataloader, validationloader, criterion, epochs=10, learning_rate=1e-4, save_path="segformer.pt"):
+
+    def train(self, dataloader, validationloader, criterion, save_path, epochs=10, learning_rate=1e-4, threshold=0.003):
         """
         Fine-tune the SegFormer model on a dataset.
         :param dataloader: DataLoader object providing image-mask pairs
@@ -90,6 +92,7 @@ class SegFormer:
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
         criterion = criterion
         self.model.train()
+        best_validation_loss = 10
         for epoch in range(epochs):
             epoch_loss = 0.0
             total_samples = 0
@@ -124,12 +127,17 @@ class SegFormer:
 
             print(f"Epoch {epoch+1}/{epochs}, Training Loss: {avg_loss:.4f}, Validation Loss: {avg_validation_loss:.4f}")
 
-        torch.save({
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'epoch_losses': self.losses
-        }, save_path)
-        print(f"Model saved to {save_path}")
+            if avg_validation_loss > best_validation_loss + threshold:
+                print(f"Current validation loss {avg_validation_loss} higher than best validation loss {best_validation_loss} in epoch {epoch+1}, stopping training")
+                torch.save(self.model.state_dict(), save_path)
+                print(f"Optimal model saved to {save_path}")
+                break
+
+            if avg_validation_loss < best_validation_loss:
+                best_validation_loss = avg_validation_loss
+
+        print(f"Training finished")
+        
     
     def predict(self, pixel_values, threshold=0.5):
         """
