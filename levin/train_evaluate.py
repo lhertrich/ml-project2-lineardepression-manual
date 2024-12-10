@@ -4,8 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchvision.transforms.functional as TF
 import json
-import gc
-from helpers import patch_to_label
+from .helpers import patch_to_label
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
 
