@@ -129,8 +129,6 @@ class SegFormer:
 
             print(f"Epoch {epoch+1}/{epochs}, Training Loss: {avg_loss:.4f}, Validation Loss: {avg_validation_loss:.4f}")
 
-
-
         print(f"Training finished")
         
     
