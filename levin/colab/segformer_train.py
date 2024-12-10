@@ -24,7 +24,7 @@ import json
 import matplotlib.pyplot as plt
 import gc
 
-from levin.SegFormer.segformer_b3 import SegFormer
+from levin.models.segformer.segformer_b3 import SegFormer
 from levin.dataset import RoadSegmentationDataset
 from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score

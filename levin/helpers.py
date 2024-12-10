@@ -57,3 +57,36 @@ def write_predictions_to_file(predictions, labels, filename):
     for i in range(0, n):
         file.write(max_labels(i) + " " + max_predictions(i))
     file.close()
+
+
+def patch_to_label(patch, threshold=0.25):
+    """
+    Assign a label to a patch based on the average pixel intensity
+
+    Args:
+        patch: numpy array, a 16x16 patch of the predicted mask
+        threshold: float, foreground threshold for binary classification
+
+    Returns:
+        int, binary label (0 or 1)
+    """
+    mean_value = np.mean(patch)
+    if np.isnan(mean_value):
+        print(f"Encountered NaN in patch mean: {patch}")
+    if patch.size == 0:
+        print("Encountered empty patch!")
+    return 1 if mean_value > threshold else 0
+
+
+def get_test_images(test_image_folder):
+        """Recursively retrieve all test image file paths from the test folder
+
+        Returns:
+            image_paths: list, list of file paths to test images
+        """
+        image_paths = []
+        for root, _, files in os.walk(test_image_folder):
+            for file in files:
+                if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    image_paths.append(os.path.join(root, file))
+        return image_paths

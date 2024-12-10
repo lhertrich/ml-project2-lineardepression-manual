@@ -22,7 +22,7 @@ import re
 import matplotlib.pyplot as plt
 import shutil
 from PIL import Image
-from SegFormer.segformer_b3 import SegFormer
+from levin.models.segformer.segformer_b3 import SegFormer
 from dataset_submission import RoadSegmentationDataset
 from transformers import SegformerImageProcessor, SegformerForSemanticSegmentation
 from torch.utils.data import DataLoader
