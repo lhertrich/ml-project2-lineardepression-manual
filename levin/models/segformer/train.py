@@ -42,7 +42,7 @@ external_mask_filenames = sorted(os.listdir(external_mask_dir))
 chicago_image_filenames = sorted(os.listdir(chicago_image_dir))
 chicago_mask_filenames = sorted(os.listdir(chicago_mask_dir))
 
-
+### Original augmented data
 # Create train test and validation set for original augmented data
 train_images, test_images, train_masks, test_masks = train_test_split(
     image_filenames, mask_filenames, test_size=0.2, random_state=42
@@ -64,6 +64,7 @@ test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False, num_workers=
 validation_loader = DataLoader(validation_dataset, batch_size=8, shuffle=False, num_workers=2)
 
 
+### Complete augmented original and external data
 # Create train test and validation set for external data
 external_train_images, external_test_images, external_train_masks, external_test_masks = train_test_split(
     external_image_filenames, external_mask_filenames, test_size=0.2, random_state=42
@@ -85,6 +86,7 @@ external_test_loader = DataLoader(external_test_dataset, batch_size=8, shuffle=F
 external_validation_loader = DataLoader(external_validation_dataset, batch_size=8, shuffle=False, num_workers=2)
 
 
+### Augmented original and chicago data
 # Create train test and validation set for external chicago data
 chicago_train_images, chicago_test_images, chicago_train_masks, chicago_test_masks = train_test_split(
     chicago_image_filenames, chicago_mask_filenames, test_size=0.2, random_state=42
