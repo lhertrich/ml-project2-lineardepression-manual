@@ -78,7 +78,6 @@ augmentation_pipeline = A.Compose(
             [
                 A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.5),
                 A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=0.3),
-                A.ChannelShuffle(p=0.1),
             ],
             p=0.5,
         ),
