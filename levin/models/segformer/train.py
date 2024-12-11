@@ -2,6 +2,7 @@ import os
 import torchvision.transforms as T
 import torch
 import json
+from ...helpers import set_seed
 from ...train_evaluate import TrainAndEvaluate
 from ...data_preparation.dataset import RoadSegmentationDataset
 from .segformer_b3 import SegFormer
@@ -10,6 +11,8 @@ from transformers import SegformerImageProcessor
 from torchvision.transforms.functional import InterpolationMode
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
+
+set_seed()
 
 image_dir = os.path.abspath("data/training/augmented/images")
 mask_dir = os.path.abspath("data/training/augmented/masks")
