@@ -200,7 +200,7 @@ class TrainAndEvaluate():
             json.dump(self.evaluation_metrics, f, indent=4)
 
         # Plot training and evaluation losses
-        self.plot_losses(self.model.losses, self.model.validation_losses, self.model_dir)
+        self.plot_losses(self.model.losses, self.model.validation_losses)
 
         # Save predictions for 5 test images
         self.save_predictions()
