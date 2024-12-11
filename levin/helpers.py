@@ -1,8 +1,8 @@
 import matplotlib.image as mpimg
 import numpy as np
-import matplotlib.pyplot as plt
-import os, sys
-from PIL import Image
+import random
+import torch
+import os
 
 
 def load_image(infilename):
@@ -90,3 +90,25 @@ def get_test_images(test_image_folder):
                 if file.lower().endswith(('.png', '.jpg', '.jpeg')):
                     image_paths.append(os.path.join(root, file))
         return image_paths
+
+
+def set_seed(seed=42):
+    """ Sets the seed in numpy and torch for reproducibility
+
+    Args:
+        seed = 42: int, the seed value to use
+    """
+    # Set seed for Python's random module
+    random.seed(seed)
+    
+    # Set seed for NumPy
+    np.random.seed(seed)
+    
+    # Set seed for PyTorch
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # For multi-GPU environments
+
+    # Ensure deterministic behavior
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
