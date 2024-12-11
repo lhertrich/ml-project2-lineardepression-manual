@@ -120,7 +120,7 @@ class TrainAndEvaluate():
         plt.tight_layout()
 
         # Save the plot
-        plot_path = os.path.join(self.save_dir, "loss_over_epochs.png")
+        plot_path = os.path.join(self.model_dir, "loss_over_epochs.png")
         plt.savefig(plot_path)
         plt.close()
 
@@ -133,7 +133,7 @@ class TrainAndEvaluate():
         Args:
             num_images = 5: int, the number of test images for which predictions should be saved
         """
-        predictions_dir = os.path.join(self.save_dir, "sample_predictions")
+        predictions_dir = os.path.join(self.model_dir, "sample_predictions")
         os.makedirs(predictions_dir, exist_ok=True)
 
         saved_count = 0
