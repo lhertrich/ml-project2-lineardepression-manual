@@ -14,14 +14,23 @@ def apply_augmentations(image, mask, num_augmentations=5):
         A.VerticalFlip(p=0.5),
         A.RandomRotate90(p=0.5),
         A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=0.5),
+        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
         OneOf(
             [
-                A.GaussNoise(var_limit=(10, 50), p=0.5),
+                A.GaussNoise(var_limit=(10, 50), p=0.5), 
+                A.GaussianBlur(blur_limit=(3, 7), p=0.2),
             ],
             p=0.7,
         ),
+        OneOf(
+            [
+                A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.5),
+                A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=0.3),
+            ],
+            p=0.5,
+        ),
     ]
-    )
+)
 
     augmented_images = []
     augmented_masks = []
@@ -169,5 +178,7 @@ def process_data_city(existing_augmented, external_data, output_dir, city):
 
 existing_augmented = os.path.abspath("data/training/augmented")
 external_data = os.path.abspath("data/external_data")
-output_dir = os.path.abspath("data/complete_data_augmented_chicago")
-process_data_city(existing_augmented, external_data, output_dir, "chicago")
+output_dir = os.path.abspath("data/training/complete_data_augmented")
+output_dir_chicago = os.path.abspath("data/training/chicago_data_augmented")
+process_data(existing_augmented, external_data, output_dir)
+process_data_city(existing_augmented, external_data, output_dir_chicago, "chicago")

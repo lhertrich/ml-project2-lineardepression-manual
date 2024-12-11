@@ -175,12 +175,24 @@ class TrainAndEvaluate():
                 best_epoch: int, the epoch with the smalles evaluation loss
         """
         # Train model
-        self.model.train(self.train_loader, self.validation_loader, self.criterion, self.model_save_path, epochs=self.epochs, save=self.save)
+        self.model.train(self.train_loader, self.validation_loader, self.criterion, self.model_save_path, epochs=self.epochs)
         print("Training complete")
 
         # Find best epoch based on evaluation loss
         best_epoch = min(self.model.validation_losses, key=self.model.validation_losses.get)
         print(f"Best epoch: {best_epoch}")
+
+        # Load the best model
+        best_model_path = self.model_save_path.replace(".pt", f"_epoch{best_epoch}.pt")
+        self.model.load_state_dict(torch.load(best_model_path))
+        print(f"Best model loaded from {best_model_path}")
+
+        # Delete other models
+        for epoch in range(1, self.epochs + 1):
+            model_path = self.model_save_path.replace(".pt", f"_epoch{epoch}.pt")
+            if model_path != best_model_path and os.path.exists(model_path):
+                os.remove(model_path)
+                print(f"Deleted model: {model_path}")
 
         # Evaluate the model on the test set for different thresholds
         thresholds = [0.25, 0.5]

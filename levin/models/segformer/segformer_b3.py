@@ -90,6 +90,8 @@ class SegFormer:
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
         criterion = criterion
         self.model.train()
+
+        model_paths = []
         for epoch in range(epochs):
             epoch_loss = 0.0
             total_samples = 0
@@ -124,6 +126,7 @@ class SegFormer:
 
             epoch_save_path = save_path.replace(".pt", f"_epoch{epoch + 1}.pt")
             torch.save(self.model.state_dict(), epoch_save_path)
+            model_paths.append(epoch_save_path)
             print(f"Model saved to {epoch_save_path}")
 
             print(f"Epoch {epoch+1}/{epochs}, Training Loss: {avg_loss:.4f}, Validation Loss: {avg_validation_loss:.4f}")
