@@ -3,3 +3,4 @@ numpy
 matplotlib
 torchvision
 PIL
+segmentation-models-pytorch
