@@ -4,31 +4,21 @@ import torchvision.transforms as T
 import numpy as np
 import os
 
-class RoadSegmentationDataset(Dataset):
-    def __init__(self, image_dir, mask_dir, image_filenames, mask_filenames, feature_extractor, mask_transform=None):
+class SegformerRoadSegmentationDatasetSubmission(Dataset):
+    def __init__(self, image_dir, image_filenames, feature_extractor):
         self.image_dir = image_dir
-        self.mask_dir = mask_dir
         self.image_filenames = image_filenames
-        self.mask_filenames = mask_filenames
         self.feature_extractor = feature_extractor
-        self.mask_transform = mask_transform
 
     def __len__(self):
         return len(self.image_filenames)
 
     def __getitem__(self, idx):
         image_path = os.path.join(self.image_dir, self.image_filenames[idx])
-        mask_path = os.path.join(self.mask_dir, self.mask_filenames[idx])
 
         image = Image.open(image_path).convert("RGB")  # Ensure image is RGB
-        mask = Image.open(mask_path).convert("L")  # Ensure mask is grayscale
 
         # Remove additional batch dimension added by the FeatureExtractor, because it is added by the dataloader again
         pixel_values = self.feature_extractor(images=image, return_tensors="pt")["pixel_values"].squeeze(0)
-
-        if self.mask_transform:
-            mask = self.mask_transform(mask)
-        else:
-            mask = T.ToTensor()(mask)
         
-        return pixel_values, mask
+        return pixel_values

@@ -4,7 +4,7 @@ import torch
 import json
 from ...helpers import set_seed
 from ...train_evaluate import TrainAndEvaluate
-from ...data_preparation.dataset import RoadSegmentationDataset
+from segformer_dataset import RoadSegmentationDataset
 from .segformer_b3 import SegFormer
 from ...loss_functions import ComboLoss, DiceLoss, TverskyLoss, WeightedBCEWithLogitsLoss
 from transformers import SegformerImageProcessor
