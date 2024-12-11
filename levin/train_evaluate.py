@@ -187,7 +187,7 @@ class TrainAndEvaluate():
         best_f1 = 0
         best_threshold = 0
         for threshold in thresholds:
-            f1, acc, prec, rec = self.evaluate_model(self.model, self.test_loader, self.device, threshold=threshold)
+            f1, acc, prec, rec = self.evaluate_model(patch_size=16, threshold=threshold)
             if f1 > best_f1:
                 best_f1 = f1
                 best_threshold = threshold
