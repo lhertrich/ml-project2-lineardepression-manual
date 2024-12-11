@@ -44,8 +44,7 @@ class TrainAndEvaluate():
 
         with torch.no_grad():
             for images, masks in self.test_loader:
-                # Move images and masks to the correct device
-                images = images.to(self.device)
+                # Move masks to the correct device
                 masks = masks.cpu().numpy()
 
                 # Get predictions for the entire batch

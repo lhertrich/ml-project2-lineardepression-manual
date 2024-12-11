@@ -126,7 +126,7 @@ for criterion in loss_functions:
   print(f"Training model with {criterion.__class__.__name__}")
   # Train and evaluate
   model = SegFormer()
-  train_eval = TrainAndEvaluate(model, train_loader, validation_loader, test_loader, criterion, 10, save_path, save=False)
+  train_eval = TrainAndEvaluate(model, train_loader, validation_loader, test_loader, criterion, 10, save_path)
   f1, threshold, epoch = train_eval.run()
   if f1 > best_f1:
     best_f1 = f1

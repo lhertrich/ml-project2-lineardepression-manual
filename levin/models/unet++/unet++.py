@@ -12,7 +12,7 @@ class UnetPlusPlus():
         self.validation_losses = {}
 
         # Initialize the model
-        self.model = smp.Unet(
+        self.model = smp.UnetPlusPlus(
             encoder_name=encoder_name,
             encoder_weights=encoder_weight,
             in_channels=in_channels,               
@@ -51,14 +51,13 @@ class UnetPlusPlus():
                 masks = masks.to(self.device)
 
                 # Forward pass
-                outputs = self.model(pixel_values=images)
-                logits = outputs.logits
-                resized_logits = F.interpolate(logits, size=masks.shape[2:], mode="bilinear", align_corners=False)
+                outputs = self.model(images)
+                resized_outputs = F.interpolate(outputs, size=masks.shape[2:], mode="bilinear", align_corners=False)
 
                 masks = masks.contiguous().float()
 
                 # Compute loss
-                loss = criterion(resized_logits, masks)
+                loss = criterion(resized_outputs, masks)
                 validation_loss += loss.item() * len(images)
                 total_val_samples += len(images)
 
@@ -86,14 +85,13 @@ class UnetPlusPlus():
                 masks = masks.to(self.device)
                 
                 # Forward pass
-                outputs = self.model(pixel_values=images)
-                logits = outputs.logits
-                resized_logits = F.interpolate(logits, size=masks.shape[2:], mode="bilinear", align_corners=False)
+                outputs = self.model(images)
+                resized_outputs = F.interpolate(outputs, size=masks.shape[2:], mode="bilinear", align_corners=False)
 
                 masks = masks.contiguous().float()
 
                 # Compute loss
-                loss = criterion(resized_logits, masks)
+                loss = criterion(resized_outputs, masks)
                 epoch_loss += loss.item() * len(images)
                 total_samples += len(images)
                 
@@ -118,7 +116,7 @@ class UnetPlusPlus():
         print(f"Training finished")
         
     
-    def predict(self, pixel_values, threshold=0.5):
+    def predict(self, images, threshold=0.5):
         """
         Perform prediction on a single image.
         :param image: pixel_values
@@ -127,13 +125,13 @@ class UnetPlusPlus():
         self.model.eval()
         with torch.no_grad():
             # Forward pass
-            outputs = self.model(pixel_values=pixel_values)  # Assumes pixel_values is preprocessed
-            logits = outputs.logits  # Shape: [batch_size, num_labels, height, width]
+            images = images.to(self.device)
+            outputs = self.model(images)
 
             # Apply sigmoid activation to get probabilities
-            probabilities = torch.sigmoid(logits)
+            probabilities = torch.sigmoid(outputs)
 
             # Apply threshold to get binary masks
-            binary_masks = (probabilities > threshold).to(torch.uint8)  # Convert to uint8 for binary masks
+            binary_masks = (probabilities > threshold).to(torch.uint8)
 
-        return binary_masks  # Return as Torch tensor
+        return binary_masks

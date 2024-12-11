@@ -142,6 +142,7 @@ class SegFormer:
         """
         self.model.eval()
         with torch.no_grad():
+            pixel_values = pixel_values.to(self.device)
             # Forward pass
             outputs = self.model(pixel_values=pixel_values)  # Assumes pixel_values is preprocessed
             logits = outputs.logits  # Shape: [batch_size, num_labels, height, width]
