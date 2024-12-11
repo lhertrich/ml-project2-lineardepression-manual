@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 class UnetPlusPlus():
-    def __init__(self, encoder_name="resnet34", encoder_weight="imagenet", in_channels=3, num_labels=1):
+    def __init__(self, encoder_name="resnet50", encoder_weight="imagenet", in_channels=3, num_labels=1):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Keep track of losses

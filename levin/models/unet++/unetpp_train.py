@@ -4,13 +4,16 @@ import torch
 import json
 from ...helpers import set_seed
 from ...train_evaluate import TrainAndEvaluate
-from .segformer_dataset import SegformerRoadSegmentationDataset
-from .segformer_b3 import SegFormer
+from .unetpp_dataset import UnetPlusPlusRoadSegmentationDataset
+from .unetpp import UnetPlusPlus
 from ...loss_functions import ComboLoss, DiceLoss, TverskyLoss, WeightedBCEWithLogitsLoss
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 set_seed()
+
+encoder_name="resnet50"
+pretrained="imagenet"
 
 image_dir = os.path.abspath("data/training/augmented/images")
 mask_dir = os.path.abspath("data/training/augmented/masks")
@@ -44,9 +47,9 @@ print(f"Number of validation images: {len(validation_images)}")
 print(f"Number of test images: {len(test_images)}")
 
 # Define datasets for train and test sets
-train_dataset = SegformerRoadSegmentationDataset(image_dir, mask_dir, train_images, train_masks)
-test_dataset = SegformerRoadSegmentationDataset(image_dir, mask_dir, test_images, test_masks)
-validation_dataset = SegformerRoadSegmentationDataset(image_dir, mask_dir, validation_images, validation_masks)
+train_dataset = UnetPlusPlusRoadSegmentationDataset(image_dir, mask_dir, train_images, train_masks, encoder_name=encoder_name, pretrained_name=pretrained)
+test_dataset = UnetPlusPlusRoadSegmentationDataset(image_dir, mask_dir, test_images, test_masks, encoder_name=encoder_name, pretrained_name=pretrained)
+validation_dataset = UnetPlusPlusRoadSegmentationDataset(image_dir, mask_dir, validation_images, validation_masks, encoder_name=encoder_name, pretrained_name=pretrained)
 
 train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=2)
 test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False, num_workers=2)
@@ -66,9 +69,9 @@ print(f"Number of external validation images: {len(external_validation_images)}"
 print(f"Number of external test images: {len(external_test_images)}")
 
 # Define datasets for train and test sets
-external_train_dataset = SegformerRoadSegmentationDataset(external_image_dir, external_mask_dir, external_train_images, external_train_masks)
-external_test_dataset = SegformerRoadSegmentationDataset(external_image_dir, external_mask_dir, external_test_images, external_test_masks)
-external_validation_dataset = SegformerRoadSegmentationDataset(external_image_dir, external_mask_dir, external_validation_images, external_validation_masks)
+external_train_dataset = UnetPlusPlusRoadSegmentationDataset(external_image_dir, external_mask_dir, external_train_images, external_train_masks, encoder_name=encoder_name, pretrained_name=pretrained)
+external_test_dataset = UnetPlusPlusRoadSegmentationDataset(external_image_dir, external_mask_dir, external_test_images, external_test_masks, encoder_name=encoder_name, pretrained_name=pretrained)
+external_validation_dataset = UnetPlusPlusRoadSegmentationDataset(external_image_dir, external_mask_dir, external_validation_images, external_validation_masks, encoder_name=encoder_name, pretrained_name=pretrained)
 
 external_train_loader = DataLoader(external_train_dataset, batch_size=8, shuffle=True, num_workers=2)
 external_test_loader = DataLoader(external_test_dataset, batch_size=8, shuffle=False, num_workers=2)
@@ -88,9 +91,9 @@ print(f"Number of chicago validation images: {len(chicago_validation_images)}")
 print(f"Number of chicago test images: {len(chicago_test_images)}")
 
 # Define datasets for train and test sets
-chicago_train_dataset = SegformerRoadSegmentationDataset(chicago_image_dir, chicago_mask_dir, chicago_train_images, chicago_train_masks)
-chicago_test_dataset = SegformerRoadSegmentationDataset(chicago_image_dir, chicago_mask_dir, chicago_test_images, chicago_test_masks)
-chicago_validation_dataset = SegformerRoadSegmentationDataset(chicago_image_dir, chicago_mask_dir, chicago_validation_images, external_validation_masks)
+chicago_train_dataset = UnetPlusPlusRoadSegmentationDataset(chicago_image_dir, chicago_mask_dir, chicago_train_images, chicago_train_masks, encoder_name=encoder_name, pretrained_name=pretrained)
+chicago_test_dataset = UnetPlusPlusRoadSegmentationDataset(chicago_image_dir, chicago_mask_dir, chicago_test_images, chicago_test_masks, encoder_name=encoder_name, pretrained_name=pretrained)
+chicago_validation_dataset = UnetPlusPlusRoadSegmentationDataset(chicago_image_dir, chicago_mask_dir, chicago_validation_images, external_validation_masks, encoder_name=encoder_name, pretrained_name=pretrained)
 
 chicago_train_loader = DataLoader(chicago_train_dataset, batch_size=8, shuffle=True, num_workers=2)
 chicago_test_loader = DataLoader(chicago_test_dataset, batch_size=8, shuffle=False, num_workers=2)
@@ -98,7 +101,7 @@ chicago_validation_loader = DataLoader(chicago_validation_dataset, batch_size=8,
 
 # Test different loss functions for original augmented data
 root_path = os.path.abspath("levin/")
-save_path = os.path.join(root_path, "trained_models", "segformer_b3")
+save_path = os.path.join(root_path, "trained_models", "unet_plus_plus")
 print("Created save path")
 os.makedirs(save_path, exist_ok=True)
 
@@ -111,7 +114,7 @@ best_data = "original"
 for criterion in loss_functions:
   print(f"Training model with {criterion.__class__.__name__}")
   # Train and evaluate
-  model = SegFormer()
+  model = UnetPlusPlus(encoder_name=encoder_name, encoder_weight=pretrained)
   train_eval = TrainAndEvaluate(model, train_loader, validation_loader, test_loader, criterion, 10, save_path)
   f1, threshold, epoch = train_eval.run()
   if f1 > best_f1:
@@ -130,7 +133,7 @@ print(f"Best loss function: {best_loss_function.__class__.__name__}")
 external_save_path = os.path.join(root_path, "trained_models", "segformer_b3", "external")
 print("Created external save path")
 os.makedirs(external_save_path, exist_ok=True)
-model = SegFormer()
+model = UnetPlusPlus()
 train_eval = TrainAndEvaluate(model, external_train_loader, external_validation_loader, external_test_loader, best_loss_function, 10, external_save_path)
 f1, threshold, epoch = train_eval.run()
 if f1 > best_f1:
@@ -144,7 +147,7 @@ if f1 > best_f1:
 chicago_save_path = os.path.join(root_path, "trained_models", "segformer_b3", "chicago")
 print("Created chicago save path")
 os.makedirs(chicago_save_path, exist_ok=True)
-model = SegFormer()
+model = UnetPlusPlus()
 train_eval = TrainAndEvaluate(model, external_train_loader, external_validation_loader, external_test_loader, best_loss_function, 10, chicago_save_path)
 f1, threshold, epoch = train_eval.run()
 if f1 > best_f1:

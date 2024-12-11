@@ -1,17 +1,27 @@
-from torch.utils.data import Dataset
-from PIL import Image
 import torchvision.transforms as T
 import numpy as np
 import os
+from torchvision.transforms.functional import InterpolationMode
+from torch.utils.data import Dataset
+from PIL import Image
+from transformers import SegformerImageProcessor
+
 
 class SegformerRoadSegmentationDataset(Dataset):
-    def __init__(self, image_dir, mask_dir, image_filenames, mask_filenames, feature_extractor, mask_transform=None):
+    def __init__(self, image_dir, mask_dir, image_filenames, mask_filenames):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
         self.image_filenames = image_filenames
         self.mask_filenames = mask_filenames
-        self.feature_extractor = feature_extractor
-        self.mask_transform = mask_transform
+        self.feature_extractor = feature_extractor = SegformerImageProcessor(
+            do_normalize=True,
+            do_resize=True,
+            size=512
+        )
+        self.mask_transform = mask_transform = T.Compose([
+            T.Resize((512, 512), interpolation=InterpolationMode.NEAREST),  # Use nearest-neighbor
+            T.ToTensor()
+        ])
 
     def __len__(self):
         return len(self.image_filenames)
