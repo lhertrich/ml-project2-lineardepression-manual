@@ -183,7 +183,7 @@ class TrainAndEvaluate():
 
         # Load the best model
         best_model_path = self.model_save_path.replace(".pt", f"_epoch{best_epoch}.pt")
-        self.model.load_state_dict(torch.load(best_model_path))
+        self.model.model.load_state_dict(torch.load(best_model_path))
         print(f"Best model loaded from {best_model_path}")
 
         # Delete other models

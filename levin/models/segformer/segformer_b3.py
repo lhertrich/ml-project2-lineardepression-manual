@@ -22,12 +22,12 @@ class SegFormer:
         # Reinitialize the decode head classifier for binary segmentation
         self.model.decode_head.classifier = torch.nn.Sequential(
             torch.nn.Conv2d(
-                in_channels=768,  # Feature dimension from the encoder
-                out_channels=num_labels,  # Number of output labels
-                kernel_size=1,  # 1x1 convolution to map features to logits
+                in_channels=768, 
+                out_channels=num_labels,
+                kernel_size=1,
             ),
             torch.nn.Upsample(
-                size=(512, 512),  # Upsample to the target resolution
+                size=(512, 512),
                 mode='bilinear',
                 align_corners=False
             )
