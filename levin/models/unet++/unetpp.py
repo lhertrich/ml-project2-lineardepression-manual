@@ -75,6 +75,7 @@ class UnetPlusPlus():
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
         criterion = criterion
         self.model.train()
+        model_paths = []
         for epoch in range(epochs):
             epoch_loss = 0.0
             total_samples = 0
@@ -106,10 +107,10 @@ class UnetPlusPlus():
             avg_validation_loss = self.validate(validationloader, criterion)
             self.validation_losses[epoch + 1] = avg_validation_loss
 
-            if save:
-                epoch_save_path = save_path.replace(".pt", f"_epoch{epoch + 1}.pt")
-                torch.save(self.model.state_dict(), epoch_save_path)
-                print(f"Model saved to {epoch_save_path}")
+            epoch_save_path = save_path.replace(".pt", f"_epoch{epoch + 1}.pt")
+            torch.save(self.model.state_dict(), epoch_save_path)
+            model_paths.append(epoch_save_path)
+            print(f"Model saved to {epoch_save_path}")
 
             print(f"Epoch {epoch+1}/{epochs}, Training Loss: {avg_loss:.4f}, Validation Loss: {avg_validation_loss:.4f}")
 
