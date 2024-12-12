@@ -17,7 +17,7 @@ class UnetPlusPlus():
             encoder_weights=encoder_weight,
             in_channels=in_channels,               
             classes=num_labels,
-        )
+        ).to(self.device)
     
 
     def debug_model_output(self, pixel_values):
