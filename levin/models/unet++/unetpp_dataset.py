@@ -35,8 +35,9 @@ class UnetPlusPlusRoadSegmentationDataset(Dataset):
         image = self.resize_transform(image)
         image = self.to_tensor_transform(image)
         image = self.preprocess_input(image.permute(1, 2, 0).numpy()).transpose(2, 0, 1)
-        image = torch.tensor(image)
+        image = torch.tensor(image, dtype=torch.float32)
 
         mask = self.mask_transform(mask)
+        mask = mask.to(dtype=torch.float32)
         
         return image, mask
