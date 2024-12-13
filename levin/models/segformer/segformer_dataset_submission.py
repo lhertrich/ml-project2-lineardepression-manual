@@ -7,7 +7,7 @@ import os
 
 
 class SegformerRoadSegmentationDatasetSubmission(Dataset):
-    def __init__(self, image_dir, image_filenames, feature_extractor):
+    def __init__(self, image_dir, image_filenames):
         self.image_dir = image_dir
         self.image_filenames = image_filenames
         self.feature_extractor = SegformerImageProcessor(
