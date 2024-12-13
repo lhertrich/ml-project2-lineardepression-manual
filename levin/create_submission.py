@@ -36,7 +36,7 @@ class CreateSubmission():
         with open(submission_filename, 'w') as f:
             f.write('id,prediction\n')
             for fn in image_filenames[0:]:
-                f.writelines('{}\n'.format(s) for s in self.mask_to_submission_strings(fn, self.threshold))
+                f.writelines('{}\n'.format(s) for s in self.mask_to_submission_strings(fn))
 
 
     def resize_predictions(self, predictions, target_size=(608, 608)):
