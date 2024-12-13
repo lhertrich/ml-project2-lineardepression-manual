@@ -33,6 +33,7 @@ class CreateSubmission():
             
     def masks_to_submission(self, submission_filename, *image_filenames):
         """Converts images into a submission file"""
+        print("Submission_filename: ", submission_filename)
         with open(submission_filename, 'w') as f:
             f.write('id,prediction\n')
             for fn in image_filenames[0:]:
