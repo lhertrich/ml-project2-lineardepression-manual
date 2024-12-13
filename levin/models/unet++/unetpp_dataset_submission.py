@@ -1,14 +1,19 @@
 from torch.utils.data import Dataset
 from PIL import Image
+from segmentation_models_pytorch.encoders import get_preprocessing_fn
+from torchvision.transforms.functional import InterpolationMode
 import torchvision.transforms as T
+import torch
 import numpy as np
 import os
 
 class UnetPlusPlusRoadSegmentationDatasetSubmission(Dataset):
-    def __init__(self, image_dir, image_filenames, feature_extractor):
+    def __init__(self, image_dir, image_filenames, encoder_name, pretrained_name):
         self.image_dir = image_dir
         self.image_filenames = image_filenames
-        self.feature_extractor = feature_extractor
+        self.preprocess_input = get_preprocessing_fn(encoder_name, pretrained_name)
+        self.resize_transform = T.Resize((512, 512), interpolation=InterpolationMode.BICUBIC)
+        self.to_tensor_transform = T.ToTensor()
 
     def __len__(self):
         return len(self.image_filenames)
@@ -16,9 +21,12 @@ class UnetPlusPlusRoadSegmentationDatasetSubmission(Dataset):
     def __getitem__(self, idx):
         image_path = os.path.join(self.image_dir, self.image_filenames[idx])
 
-        image = Image.open(image_path).convert("RGB")  # Ensure image is RGB
+        # Ensure image is RGB
+        image = Image.open(image_path).convert("RGB")  
 
-        # Remove additional batch dimension added by the FeatureExtractor, because it is added by the dataloader again
-        pixel_values = self.feature_extractor(images=image, return_tensors="pt")["pixel_values"].squeeze(0)
+        image = self.resize_transform(image)
+        image = self.to_tensor_transform(image)
+        image = self.preprocess_input(image.permute(1, 2, 0).numpy()).transpose(2, 0, 1)
+        image = torch.tensor(image, dtype=torch.float32)
         
-        return pixel_values
+        return image
