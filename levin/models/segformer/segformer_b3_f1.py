@@ -106,7 +106,7 @@ class SegFormer:
                 masks = masks.cpu().numpy()
 
                 # Get predictions for the entire batch
-                preds = self.model.predict(images)
+                preds = self.predict(images)
                 preds = preds.cpu().numpy()
 
                 for pred, mask in zip(preds, masks):
