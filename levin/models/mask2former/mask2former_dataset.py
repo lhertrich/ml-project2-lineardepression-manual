@@ -1,41 +1,47 @@
-import torchvision.transforms as T
-import numpy as np
 import os
-import torch
-from torchvision.transforms.functional import InterpolationMode
-from torch.utils.data import Dataset
 from PIL import Image
-from transformers import Mask2FormerImageProcessor
-
+import numpy as np
+import torch
+from torch.utils.data import Dataset
 
 class M2FRoadSegmentationDataset(Dataset):
-    def __init__(self, image_dir, mask_dir, image_filenames, mask_filenames, processor_name="facebook/mask2former-swin-small-ade-semantic"):
+    def __init__(self, image_dir, mask_dir, image_files, mask_files, processor, transform=None):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
-        self.image_filenames = image_filenames
-        self.mask_filenames = mask_filenames
-        self.processor = Mask2FormerImageProcessor.from_pretrained(processor_name)
+        self.processor = processor
+        self.transform = transform
+        self.image_files = image_files
+        self.mask_files = mask_files
 
     def __len__(self):
-        return len(self.image_filenames)
+        return len(self.image_files)
 
     def __getitem__(self, idx):
-        image_path = os.path.join(self.image_dir, self.image_filenames[idx])
-        mask_path = os.path.join(self.mask_dir, self.mask_filenames[idx])
+        image_path = os.path.join(self.image_dir, self.image_files[idx])
+        mask_path = os.path.join(self.mask_dir, self.mask_files[idx])
 
-        # Ensure Image is RGB and mask is grayscale
+        # Load image and mask
         image = Image.open(image_path).convert("RGB")
         mask = Image.open(mask_path).convert("L")
 
-        # Process inputs
-        inputs = self.processor(
-            images=image, 
-            return_tensors="pt"
+        # Convert mask to numpy array and preprocess
+        mask = np.array(mask, dtype=np.uint8)
+        mask[mask == 0] = 255
+        mask[mask == 1] = 0
+
+        # Apply transformations (if any)
+        if self.transform:
+            image = self.transform(image)
+
+        # Process with Mask2Former processor
+        encoding = self.processor(
+            images=image,
+            segmentation_maps=mask,
+            return_tensors="pt",
         )
         
-        # Return preprocessed pixel values and masks without batch dimension
-        pixel_values = inputs["pixel_values"].squeeze(0)  # (C, H, W)
-        mask = np.array(mask)
-        mask = torch.tensor(mask, dtype=torch.long)
-        
-        return pixel_values, mask
+        return {
+            "pixel_values": encoding["pixel_values"].squeeze(0),  # Remove batch dim
+            "mask_labels": encoding["mask_labels"].squeeze(0),    # Binary masks
+            "class_labels": encoding["class_labels"].squeeze(0)   # Class labels
+        }
