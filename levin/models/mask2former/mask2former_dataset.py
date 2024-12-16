@@ -50,5 +50,6 @@ class M2FImageSegmentationDataset(Dataset):
         # Update processed_inputs with unwrapped labels
         processed_inputs["mask_labels"] = mask_labels
         processed_inputs["class_labels"] = class_labels
+        processed_inputs["original_mask"] = np.array(mask)
 
         return processed_inputs

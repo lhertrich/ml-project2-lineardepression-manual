@@ -18,7 +18,7 @@ class TrainAndEvaluate():
         self.test_loader = test_loader
         self.epochs = epochs
         self.save_dir = save_dir
-        self.model_save_path = os.path.join(self.save_dir, f"trained_model.pt")
+        self.model_save_path = os.path.join(self.save_dir, "models", f"trained_model.pt")
         self.save = save
         self.evaluation_metrics = {}
 
@@ -40,18 +40,17 @@ class TrainAndEvaluate():
         all_targets = []
 
         with torch.no_grad():
-            for images, masks in self.test_loader:
-                # Move masks to the correct device
-                masks = masks.cpu().numpy()
+            for batch in self.test_loader:
+                pixel_values = batch["pixel_values"].to(self.device)
+                predictions = self.model(pixel_values=pixel_values)
+                target_sizes = [(mask.shape[0], mask.shape[1]) for mask in batch["original_mask"]]
+                predicted_masks = self.model.image_processor.post_process_semantic_segmentation(predictions, target_sizes=target_sizes)
+                original_masks = batch["original_mask"]
 
-                # Get predictions for the entire batch
-                preds = self.model.predict(images)
-                preds = preds.cpu().numpy()
-
-                for pred, mask in zip(preds, masks):
+                for pred, mask in zip(predicted_masks, original_masks):
                     # Remove the singleton dimension
-                    pred = np.squeeze(pred)  
-                    mask = np.squeeze(mask)
+                    pred = pred.cpu().numpy()
+                    mask = mask.cpu().numpy()
 
                     if pred.shape != mask.shape:
                         raise ValueError(f"Shape mismatch: pred {pred.shape}, mask {mask.shape}")
@@ -171,7 +170,7 @@ class TrainAndEvaluate():
                 best_epoch: int, the epoch with the smalles evaluation loss
         """
         # Train model
-        self.model.train(self.train_loader, self.validation_loader, self.criterion, self.model_save_path, epochs=self.epochs)
+        self.model.train(self.train_loader, self.validation_loader, self.model_save_path, epochs=self.epochs)
         print("Training complete")
 
         # Find best epoch based on evaluation loss
