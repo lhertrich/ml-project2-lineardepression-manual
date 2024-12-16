@@ -4,12 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchvision.transforms.functional as TF
 import json
-from .helpers import patch_to_label
+from ...helpers import patch_to_label
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
+from PIL import Image
 
 
 class TrainAndEvaluate():
-    def __init__(self, model, train_loader, validation_loader, test_loader, epochs, save_dir, save=False):
+    def __init__(self, model, train_loader, validation_loader, test_loader, epochs, save_dir):
         """Initializes an object to train and evaluate a given model"""
         self.model = model
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -18,8 +19,9 @@ class TrainAndEvaluate():
         self.test_loader = test_loader
         self.epochs = epochs
         self.save_dir = save_dir
-        self.model_save_path = os.path.join(self.save_dir, "models", f"trained_model.pt")
-        self.save = save
+        self.model_dir = os.path.join(save_dir, "models")
+        os.makedirs(self.model_dir, exist_ok=True)
+        self.model_save_path = os.path.join(self.model_dir, f"trained_model.pt")
         self.evaluation_metrics = {}
 
     
@@ -42,12 +44,10 @@ class TrainAndEvaluate():
         with torch.no_grad():
             for batch in self.test_loader:
                 pixel_values = batch["pixel_values"].to(self.device)
-                predictions = self.model(pixel_values=pixel_values)
-                target_sizes = [(mask.shape[0], mask.shape[1]) for mask in batch["original_mask"]]
-                predicted_masks = self.model.image_processor.post_process_semantic_segmentation(predictions, target_sizes=target_sizes)
+                predictions = self.model.predict(pixel_values=pixel_values)
                 original_masks = batch["original_mask"]
 
-                for pred, mask in zip(predicted_masks, original_masks):
+                for pred, mask in zip(predictions, original_masks):
                     # Remove the singleton dimension
                     pred = pred.cpu().numpy()
                     mask = mask.cpu().numpy()
@@ -115,7 +115,7 @@ class TrainAndEvaluate():
         plt.tight_layout()
 
         # Save the plot
-        plot_path = os.path.join(self.model_dir, "loss_over_epochs.png")
+        plot_path = os.path.join(self.save_dir, "loss_over_epochs.png")
         plt.savefig(plot_path)
         plt.close()
 
@@ -128,36 +128,36 @@ class TrainAndEvaluate():
         Args:
             num_images = 5: int, the number of test images for which predictions should be saved
         """
-        predictions_dir = os.path.join(self.model_dir, "sample_predictions")
+        predictions_dir = os.path.join(self.save_dir, "sample_predictions")
         os.makedirs(predictions_dir, exist_ok=True)
 
         saved_count = 0
         with torch.no_grad():
-            for images, masks in self.test_loader:
+            for batch in self.test_loader:
                 if saved_count >= num_images:
                     break
 
-                # Move to device
-                images = images.to(self.device)
-                masks = masks.cpu().numpy()
+                pixel_values = batch["pixel_values"].to(self.device)
+                predictions = self.model.predict(pixel_values=pixel_values)
+                original_masks = batch["original_mask"]
 
-                # Get predictions
-                preds = self.model.predict(images).cpu().numpy()
-
-                for idx in range(len(images)):
+                for idx in range(len(pixel_values)):
                     if saved_count >= num_images:
                         break
-                    image = images[idx].cpu().squeeze()
-                    maski = masks[idx].squeeze().squeeze()
-                    predi = preds[idx].squeeze().squeeze()
-                    # Save input image, ground truth mask, and predicted mask
-                    img = TF.to_pil_image(image)
-                    mask = TF.to_pil_image((maski * 255).astype(np.uint8))
-                    pred = TF.to_pil_image((predi * 255).astype(np.uint8))
+                    # Convert tensors or arrays to numpy
+                    pred = predictions[idx].cpu().numpy()
+                    true_mask = original_masks[idx]  # Already a numpy array
+                    original_image = batch["original_image"][idx]  # Original image (PIL)
 
-                    img.save(os.path.join(predictions_dir, f"test_image_{saved_count}.png"))
-                    mask.save(os.path.join(predictions_dir, f"test_mask_{saved_count}.png"))
-                    pred.save(os.path.join(predictions_dir, f"pred_mask_{saved_count}.png"))
+                    # Convert predicted and true masks to PIL images
+                    pred_image = Image.fromarray((pred * 255).astype(np.uint8))
+                    true_image = Image.fromarray((true_mask * 255).astype(np.uint8))
+
+                    # Save the original image, ground truth, and prediction
+                    original_image.save(os.path.join(predictions_dir, f"test_image_{saved_count}.png"))
+                    true_image.save(os.path.join(predictions_dir, f"test_mask_{saved_count}.png"))
+                    pred_image.save(os.path.join(predictions_dir, f"pred_mask_{saved_count}.png"))
+
                     saved_count += 1
 
                 
@@ -202,7 +202,7 @@ class TrainAndEvaluate():
             print(f"Threshold {threshold}, F1: {f1:.4f}, Accuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}")
 
         # Save evaluation metrics to JSON
-        metrics_path = os.path.join(self.model_dir, "evaluation_metrics.json")
+        metrics_path = os.path.join(self.save_dir, "evaluation_metrics.json")
         with open(metrics_path, "w") as f:
             json.dump(self.evaluation_metrics, f, indent=4)
 
@@ -212,5 +212,5 @@ class TrainAndEvaluate():
         # Save predictions for 5 test images
         self.save_predictions()
 
-        print(f"Everything complete. Results saved to {self.model_dir}.")
+        print(f"Everything complete. Results saved to {self.save_dir}.")
         return best_f1, best_threshold, best_epoch

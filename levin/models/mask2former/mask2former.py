@@ -26,7 +26,7 @@ class Mask2Former:
         """
         self.model.eval()
         validation_loss = 0.0
-        total_val_samples = 0
+        total_batches = 0
 
         with torch.no_grad():
             for batch in validationloader:
@@ -43,10 +43,10 @@ class Mask2Former:
                     class_labels=class_labels
                 )
                 loss = outputs.loss
-                validation_loss += loss.item() * len(pixel_values)
-                total_val_samples += len(pixel_values)
+                validation_loss += loss.item()
+                total_batches += 1
         # Return average validation loss
-        return validation_loss / total_val_samples
+        return validation_loss / total_batches
 
 
     def train(self, dataloader, validationloader, save_path, epochs=10, learning_rate=1e-4):
@@ -62,7 +62,7 @@ class Mask2Former:
         model_paths = []
         for epoch in range(epochs):
             epoch_loss = 0.0
-            total_samples = 0
+            total_batches = 0
             for batch in dataloader:
                 pixel_values = batch["pixel_values"].to(self.device)  # Input images
                 pixel_mask = batch["pixel_mask"].to(self.device)  # Mask for valid pixels
@@ -78,8 +78,8 @@ class Mask2Former:
                 )
 
                 loss = outputs.loss
-                epoch_loss += loss.item() * len(pixel_values)
-                total_samples += len(pixel_values)
+                epoch_loss += loss.item()
+                total_batches += 1
 
                 # Backward pass and optimization
                 optimizer.zero_grad()
@@ -87,7 +87,7 @@ class Mask2Former:
                 optimizer.step()
 
                 
-            avg_loss = epoch_loss / total_samples
+            avg_loss = epoch_loss / total_batches
             self.losses[epoch + 1] = avg_loss
             avg_validation_loss = self.validate(validationloader)
             self.validation_losses[epoch + 1] = avg_validation_loss

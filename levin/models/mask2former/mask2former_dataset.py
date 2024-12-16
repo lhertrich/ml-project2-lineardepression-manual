@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from transformers import AutoImageProcessor
 from PIL import Image
 
-class M2FImageSegmentationDataset(Dataset):
+class M2FRoadSegmentationDataset(Dataset):
     """Image segmentation dataset using Mask2FormerImageProcessor."""
 
     def __init__(self, image_dir, mask_dir, image_filenames, mask_filenames, model_name="facebook/mask2former-swin-small-ade-semantic"):
