@@ -141,7 +141,7 @@ class SegFormer:
         :return: Predicted mask torch tensor
         """
         self.model.eval()
-        with torch.no_grad():
+        with torch.no_grad(): 
             pixel_values = pixel_values.to(self.device)
             # Forward pass
             outputs = self.model(pixel_values=pixel_values)  # Assumes pixel_values is preprocessed

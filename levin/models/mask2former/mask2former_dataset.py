@@ -1,47 +1,54 @@
 import os
-from PIL import Image
 import numpy as np
-import torch
 from torch.utils.data import Dataset
+from transformers import AutoImageProcessor
+from PIL import Image
 
-class M2FRoadSegmentationDataset(Dataset):
-    def __init__(self, image_dir, mask_dir, image_files, mask_files, processor, transform=None):
+class M2FImageSegmentationDataset(Dataset):
+    """Image segmentation dataset using Mask2FormerImageProcessor."""
+
+    def __init__(self, image_dir, mask_dir, image_filenames, mask_filenames, model_name="facebook/mask2former-swin-small-ade-semantic"):
+        """
+        Args:
+            image_dir: Directory with images.
+            mask_dir: Directory with masks.
+            image_filenames: List of image filenames.
+            mask_filenames: List of mask filenames.
+            preprocessor: Mask2FormerImageProcessor.
+        """
         self.image_dir = image_dir
         self.mask_dir = mask_dir
-        self.processor = processor
-        self.transform = transform
-        self.image_files = image_files
-        self.mask_files = mask_files
-
+        self.image_filenames = image_filenames
+        self.mask_filenames = mask_filenames
+        self.preprocessor = AutoImageProcessor.from_pretrained(model_name)
+        
     def __len__(self):
-        return len(self.image_files)
-
+        return len(self.image_filenames)
+    
     def __getitem__(self, idx):
-        image_path = os.path.join(self.image_dir, self.image_files[idx])
-        mask_path = os.path.join(self.mask_dir, self.mask_files[idx])
-
         # Load image and mask
-        image = Image.open(image_path).convert("RGB")
-        mask = Image.open(mask_path).convert("L")
+        image_path = os.path.join(self.image_dir, self.image_filenames[idx])
+        mask_path = os.path.join(self.mask_dir, self.mask_filenames[idx])
 
-        # Convert mask to numpy array and preprocess
-        mask = np.array(mask, dtype=np.uint8)
-        mask[mask == 0] = 255
-        mask[mask == 1] = 0
+        image = Image.open(image_path).convert("RGB")  # Ensure image is RGB
+        mask = Image.open(mask_path).convert("L")  # Ensure mask is grayscale
 
-        # Apply transformations (if any)
-        if self.transform:
-            image = self.transform(image)
-
-        # Process with Mask2Former processor
-        encoding = self.processor(
+        # Preprocess using Mask2FormerImageProcessor
+        processed_inputs = self.preprocessor(
             images=image,
             segmentation_maps=mask,
             return_tensors="pt",
         )
-        
-        return {
-            "pixel_values": encoding["pixel_values"].squeeze(0),  # Remove batch dim
-            "mask_labels": encoding["mask_labels"].squeeze(0),    # Binary masks
-            "class_labels": encoding["class_labels"].squeeze(0)   # Class labels
-        }
+
+        mask_labels = processed_inputs["mask_labels"][0]  # Extract tensor from list
+        class_labels = processed_inputs["class_labels"][0]  # Extract tensor from list
+
+        # Remove extra batch dimension
+        processed_inputs["pixel_values"] = processed_inputs["pixel_values"].squeeze(0)
+        processed_inputs["pixel_mask"] = processed_inputs["pixel_mask"].squeeze(0)
+
+        # Update processed_inputs with unwrapped labels
+        processed_inputs["mask_labels"] = mask_labels
+        processed_inputs["class_labels"] = class_labels
+
+        return processed_inputs

@@ -5,41 +5,22 @@ import torch.nn.functional as F
 
 
 class Mask2Former:
-    def __init__(self, model_name="facebook/mask2former-swin-small-ade-semantic", num_labels=2, original_size=(400,400)):
+    def __init__(self, model_name="facebook/mask2former-swin-small-ade-semantic", original_size=(400,400)):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Keep track of losses
         self.losses = {}
         self.validation_losses = {}
-
+        self.id2label = {0: "background", 1: "road"}
         # Initialize the model
-        self.model = Mask2FormerForUniversalSegmentation.from_pretrained(
-            model_name,
-            num_labels=num_labels,
-            ignore_mismatched_sizes=True
-        ).to(self.device)
+        self.model = Mask2FormerForUniversalSegmentation.from_pretrained("facebook/mask2former-swin-small-ade-semantic",
+                                                          id2label=self.id2label,
+                                                          ignore_mismatched_sizes=True).to(self.device)
         self.image_processor = AutoImageProcessor.from_pretrained(model_name)
-
         self.original_size=original_size
     
 
-    def debug_model_output(self, pixel_values):
-        """
-        Debug model to inspect intermediate output shapes.
-        :param pixel_values: Tensor of shape [batch_size, num_channels, height, width]
-        """
-        with torch.no_grad():
-            self.model.eval()
-
-            # Forward pass through the model
-            outputs = self.model(pixel_values=pixel_values)
-
-            # Logits are the final output of the model
-            logits = outputs.logits
-            print(f"Logits shape: {logits.shape}")  # Shape should be [batch_size, num_labels, 512, 512]
-    
-
-    def validate(self, validationloader, criterion):
+    def validate(self, validationloader):
         """
         Compute validation loss over the validation set.
         """
@@ -49,24 +30,26 @@ class Mask2Former:
 
         with torch.no_grad():
             for batch in validationloader:
-                images, masks = batch
-                images = images.to(self.device)
-                masks = masks.to(self.device)
-
+                pixel_values = batch["pixel_values"].to(self.device)  # Input images
+                pixel_mask = batch["pixel_mask"].to(self.device)  # Mask for valid pixels
+                mask_labels = batch["mask_labels"].to(self.device)  # Ground truth masks
+                class_labels = batch["class_labels"].to(self.device)  # Ground truth class labels
+            
                 # Forward pass
-                outputs = self.model(pixel_values=images)
-                logits = outputs.masks_queries_logits
-                logits = logits.sum(dim=1).unsqueeze(1)
-                resized_logits = F.interpolate(logits, size=masks.shape[2:], mode="bilinear", align_corners=False)
-
-                loss = criterion(resized_logits, masks)
-                validation_loss += loss.item() * len(images)
-                total_val_samples += len(images)
+                outputs = self.model(
+                    pixel_values=pixel_values,
+                    pixel_mask=pixel_mask,
+                    mask_labels=mask_labels,
+                    class_labels=class_labels
+                )
+                loss = outputs.loss
+                validation_loss += loss.item() * len(pixel_values)
+                total_val_samples += len(pixel_values)
         # Return average validation loss
         return validation_loss / total_val_samples
 
 
-    def train(self, dataloader, validationloader, criterion, save_path, epochs=10, learning_rate=1e-4):
+    def train(self, dataloader, validationloader, save_path, epochs=10, learning_rate=1e-4):
         """
         Fine-tune the SegFormer model on a dataset.
         :param dataloader: DataLoader object providing image-mask pairs
@@ -74,7 +57,6 @@ class Mask2Former:
         :param learning_rate: Learning rate for the optimizer
         """
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
-        criterion = criterion
         self.model.train()
 
         model_paths = []
@@ -82,21 +64,22 @@ class Mask2Former:
             epoch_loss = 0.0
             total_samples = 0
             for batch in dataloader:
-                images, masks = batch
-
-                images = images.to(self.device)
-                masks = masks.to(self.device)
-                
+                pixel_values = batch["pixel_values"].to(self.device)  # Input images
+                pixel_mask = batch["pixel_mask"].to(self.device)  # Mask for valid pixels
+                mask_labels = batch["mask_labels"].to(self.device)  # Ground truth masks
+                class_labels = batch["class_labels"].to(self.device)  # Ground truth class labels
+            
                 # Forward pass
-                outputs = self.model(pixel_values=images)
-                logits = outputs.logits
-                logits = F.interpolate(logits, size=masks.shape[-2:], mode="bilinear", align_corners=False)  # Aggregate queries
-                masks = masks.unsqueeze(1)
+                outputs = self.model(
+                    pixel_values=pixel_values,
+                    pixel_mask=pixel_mask,
+                    mask_labels=mask_labels,
+                    class_labels=class_labels
+                )
 
-                # Compute loss
-                loss = criterion(logits, masks.float())
-                epoch_loss += loss.item() * len(images)
-                total_samples += len(images)
+                loss = outputs.loss
+                epoch_loss += loss.item() * len(pixel_values)
+                total_samples += len(pixel_values)
 
                 # Backward pass and optimization
                 optimizer.zero_grad()
@@ -106,7 +89,7 @@ class Mask2Former:
                 
             avg_loss = epoch_loss / total_samples
             self.losses[epoch + 1] = avg_loss
-            avg_validation_loss = self.validate(validationloader, criterion)
+            avg_validation_loss = self.validate(validationloader)
             self.validation_losses[epoch + 1] = avg_validation_loss
 
             epoch_save_path = save_path.replace(".pt", f"_epoch{epoch + 1}.pt")
@@ -129,11 +112,10 @@ class Mask2Former:
         with torch.no_grad():
             pixel_values = pixel_values.to(self.device)
             # Forward pass
-            outputs = self.model(pixel_values=pixel_values)
+            prediction = self.model(pixel_values=pixel_values)
+            target_sizes = [self.original_size] * pixel_values.size(0)
+            prediction_mask = self.image_processor.post_process_semantic_segmentation(
+                prediction, target_sizes=target_sizes
+            )
 
-            # Apply threshold to get binary masks
-            pred_semantic_map = self.image_processor.post_process_semantic_segmentation(
-                outputs, target_sizes=[self.original_size]
-            )[0]
-
-        return pred_semantic_map
+        return prediction_mask
