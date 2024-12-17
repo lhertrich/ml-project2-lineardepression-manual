@@ -146,15 +146,13 @@ class TrainAndEvaluate():
                         break
                     # Convert tensors or arrays to numpy
                     pred = predictions[idx].cpu().numpy()
-                    true_mask = original_masks[idx]  # Already a numpy array
-                    original_image = batch["original_image"][idx]  # Original image (PIL)
+                    true_mask = original_masks[idx].cpu().numpy()
 
                     # Convert predicted and true masks to PIL images
                     pred_image = Image.fromarray((pred * 255).astype(np.uint8))
                     true_image = Image.fromarray((true_mask * 255).astype(np.uint8))
 
                     # Save the original image, ground truth, and prediction
-                    original_image.save(os.path.join(predictions_dir, f"test_image_{saved_count}.png"))
                     true_image.save(os.path.join(predictions_dir, f"test_mask_{saved_count}.png"))
                     pred_image.save(os.path.join(predictions_dir, f"pred_mask_{saved_count}.png"))
 
