@@ -80,19 +80,21 @@ class SegFormer:
         return validation_loss / total_val_samples
 
 
-    def train(self, dataloader, validationloader, criterion, save_path, epochs=10, learning_rate=1e-4):
+    def train(self, dataloader, validationloader, criterion, save_path, epochs=10, learning_rate=1e-4, save=True):
         """
         Fine-tune the SegFormer model on a dataset.
         :param dataloader: DataLoader object providing image-mask pairs
         :param epochs: Number of training epochs
         :param learning_rate: Learning rate for the optimizer
         """
+        print("starting training")
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
         criterion = criterion
         self.model.train()
 
         model_paths = []
         for epoch in range(epochs):
+            print(f"Starting Epoch {epoch + 1}...")
             epoch_loss = 0.0
             total_samples = 0
             for batch in dataloader:
@@ -124,10 +126,11 @@ class SegFormer:
             avg_validation_loss = self.validate(validationloader, criterion)
             self.validation_losses[epoch + 1] = avg_validation_loss
 
-            epoch_save_path = save_path.replace(".pt", f"_epoch{epoch + 1}.pt")
-            torch.save(self.model.state_dict(), epoch_save_path)
-            model_paths.append(epoch_save_path)
-            print(f"Model saved to {epoch_save_path}")
+            if save:
+                epoch_save_path = save_path.replace(".pt", f"_epoch{epoch + 1}.pt")
+                torch.save(self.model.state_dict(), epoch_save_path)
+                model_paths.append(epoch_save_path)
+                print(f"Model saved to {epoch_save_path}")
 
             print(f"Epoch {epoch+1}/{epochs}, Training Loss: {avg_loss:.4f}, Validation Loss: {avg_validation_loss:.4f}")
 

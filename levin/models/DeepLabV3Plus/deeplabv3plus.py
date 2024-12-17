@@ -56,10 +56,12 @@ class DeepLabV3Plus():
         :param epochs: Number of training epochs
         :param learning_rate: Learning rate for the optimizer
         """
+        print("starting training")
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate)
         criterion = criterion
         self.model.train()
         for epoch in range(epochs):
+            print(f"Starting Epoch {epoch + 1}...")
             epoch_loss = 0.0
             total_samples = 0
             for batch in dataloader:
