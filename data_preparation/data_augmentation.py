@@ -85,9 +85,16 @@ augmentation_pipeline = A.Compose(
 )
 
 def augment_and_save(image_dir, mask_dir, augmented_image_dir, augmented_mask_dir, num_augmentations=3):
-    '''
-    Augments the data and saves it
-    '''
+    """Augments the data and saves it
+
+    Args:
+        image_dir: string, the directory of the images to augment
+        mask_dir: string, the directory of the masks to augment
+        augmented_image_dir: string, the directory where the augmented images should be stored
+        augmented_mask_dir: string, the directory where the augmented masks should be stored
+        num_augmentations=3: int, the number of augmentations to perform per image and mask
+    """
+    
     image_files = os.listdir(image_dir)
     
     for image_name in image_files:
