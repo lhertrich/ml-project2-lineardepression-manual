@@ -26,13 +26,6 @@ def img_crop(im, w, h):
             list_patches.append(im_patch)
     return list_patches
 
-# Extract 6-dimensional features consisting of average RGB color as well as variance
-def extract_features(img):
-    feat_m = np.mean(img, axis=(0, 1))
-    feat_v = np.var(img, axis=(0, 1))
-    feat = np.append(feat_m, feat_v)
-    return feat
-
 
 # Extract 2-dimensional features consisting of average gray color as well as variance
 def extract_features_2d(img):
@@ -42,20 +35,11 @@ def extract_features_2d(img):
     return feat
 
 
-# Extract features for a given image
-def extract_img_features(filename):
-    img = load_image(filename)
-    img_patches = img_crop(img, patch_size, patch_size)
-    X = np.asarray(
-        [extract_features_2d(img_patches[i]) for i in range(len(img_patches))]
-    )
-    return X
-
 foreground_threshold = (
     0.25  # percentage of pixels > 1 required to assign a foreground label to a patch
 )
 
-
+# return 1 if the percentage of pixels higher than 1 is higher than the threshold
 def value_to_class(v):
     df = np.sum(v)
     if df > foreground_threshold:
@@ -73,18 +57,6 @@ def label_to_img(imgwidth, imgheight, w, h, labels):
             idx = idx + 1
     return im
 
-
-def make_img_overlay(img, predicted_img):
-    w = img.shape[0]
-    h = img.shape[1]
-    color_mask = np.zeros((w, h, 3), dtype=np.uint8)
-    color_mask[:, :, 0] = predicted_img * 255
-
-    img8 = img_float_to_uint8(img)
-    background = Image.fromarray(img8, "RGB").convert("RGBA")
-    overlay = Image.fromarray(color_mask, "RGB").convert("RGBA")
-    new_img = Image.blend(background, overlay, 0.2)
-    return new_img
 
 # Get paths for test images
 def get_test_images(test_folder):
@@ -144,14 +116,6 @@ def masks_to_submission(submission_filename, image_filenames):
             f.writelines('{}\n'.format(s) for s in mask_to_submission_strings(image_filename, img_number))
 
 
-def label_to_img(imgwidth, imgheight, w, h, labels):
-    im = np.zeros([imgwidth, imgheight])
-    idx = 0
-    for i in range(0, imgheight, h):
-        for j in range(0, imgwidth, w):
-            im[j : j + w, i : i + h] = labels[idx]
-            idx = idx + 1
-    return im
 
 
 if __name__ == "__main__":
@@ -234,11 +198,12 @@ if __name__ == "__main__":
     F1_score = f1_score(Y_test, Z)
     print("F1 score = " + str(F1_score))
 
+
     paths = get_test_images("./data/test_set_images")
     paths.sort(key=lambda x: int(os.path.basename(x).split('_')[1].split('.')[0]))
 
     # Define paths
-    test_images_folder = "/Users/eugeniecyrot/Documents/epfl/Master/MA3/ML/ml-project2-lineardepression-manual/data/test_set_images"
+    test_images_folder = "./data/test_set_images"
     output_masks_folder = "predictions"
     submission_file = "logistic_submission.csv"
 
