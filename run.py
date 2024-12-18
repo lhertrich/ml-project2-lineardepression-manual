@@ -45,7 +45,7 @@ chicago_submission_validation_loader = DataLoader(chicago_validation_dataset, ba
 # Train model
 loss_function = ComboLoss()
 root_path = os.path.abspath("trained_models")
-chicago_save_path = os.path.join(root_path, "trained_models", "combined_models", "submission")
+chicago_save_path = os.path.join(root_path, "combined_models", "submission")
 os.makedirs(chicago_save_path, exist_ok=True)
 print("Created deeplab save path")
 deeplab_model = DeepLabV3Plus(encoder_name=encoder_name_chicago, encoder_weight=encoder_weight_chicago, in_channels=3, num_labels=1)
