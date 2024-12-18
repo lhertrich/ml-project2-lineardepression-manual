@@ -5,41 +5,11 @@ from PIL import Image
 from sklearn import linear_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
-
+from utils.helpers import img_float_to_uint8, load_image
 
 root_dir = "../data/training/"
 image_dir = root_dir + "augmented/images/"
 gt_dir = root_dir + "augmented/masks/"
-
-
-# Helper functions
-def load_image(infilename):
-    data = mpimg.imread(infilename)
-    return data
-
-
-def img_float_to_uint8(img):
-    rimg = img - np.min(img)
-    rimg = (rimg / np.max(rimg) * 255).round().astype(np.uint8)
-    return rimg
-
-
-# Concatenate an image and its groundtruth
-def concatenate_images(img, gt_img):
-    nChannels = len(gt_img.shape)
-    w = gt_img.shape[0]
-    h = gt_img.shape[1]
-    if nChannels == 3:
-        cimg = np.concatenate((img, gt_img), axis=1)
-    else:
-        gt_img_3c = np.zeros((w, h, 3), dtype=np.uint8)
-        gt_img8 = img_float_to_uint8(gt_img)
-        gt_img_3c[:, :, 0] = gt_img8
-        gt_img_3c[:, :, 1] = gt_img8
-        gt_img_3c[:, :, 2] = gt_img8
-        img8 = img_float_to_uint8(img)
-        cimg = np.concatenate((img8, gt_img_3c), axis=1)
-    return cimg
 
 
 def img_crop(im, w, h):

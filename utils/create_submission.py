@@ -11,6 +11,14 @@ from PIL import Image
 
 class CreateSubmission():
     def __init__(self, model, test_dataloader, threshold, save_path):
+        """ Initializes a CreateSubmission object
+
+        Args:
+            model: Object, the trained model that should be used for submission
+            test_dataloader: Dataloader, the dataloader with the test images for submission
+            threshold: int, the threshold which should be used to predict the patches
+            save_path: string, the path where the submission files should be saved
+        """
         self.model = model
         self.test_dataloader = test_dataloader
         self.threshold = threshold
@@ -18,7 +26,17 @@ class CreateSubmission():
     
 
     def mask_to_submission_strings(self, image_filename):
-        """Reads a single image and outputs the strings that should go into the submission file"""
+        """Reads a single image and outputs the strings that should go into the submission file
+        
+        Args:
+            image_filename: string, the filename of the image for which the strings are created
+
+        Yields:
+            str: A string in the format "{:03d}_{}_{}," where:
+                - The first part is the zero-padded image number extracted from the filename
+                - The second and third parts are the x and y coordinates of the patch (column and row indices)
+                - The last part is the predicted label for the patch, based on the function `patch_to_label`
+        """
         img_number = int(re.search(r"prediction_(\d+)", image_filename).group(1))
         print(f"Filename: {image_filename}, number: {img_number}")
         im = mpimg.imread(image_filename)
@@ -31,7 +49,12 @@ class CreateSubmission():
 
             
     def masks_to_submission(self, submission_filename, *image_filenames):
-        """Converts images into a submission file"""
+        """Converts images into a submission file
+        
+        Args:
+            submission_filename: string, the name of the file where to write the submission
+            *image_filenames: iterable, the image_filenames of the masks which should be written into the submission file
+        """
         print("Submission_filename: ", submission_filename)
         with open(submission_filename, 'w') as f:
             f.write('id,prediction\n')
@@ -43,7 +66,7 @@ class CreateSubmission():
         """ Resize a batch of predictions to the target size
 
         Args:
-            predictions: torch dataloader batch, batch of predicted masks (numpy array or tensor of shape [batch_size, 1, H, W])
+            predictions: Dataloader batch, batch of predicted masks (numpy array or tensor of shape [batch_size, 1, H, W])
             target_size = (608,608): tuple, target size for resizing
 
         Returns:
@@ -63,6 +86,7 @@ class CreateSubmission():
     
 
     def create_and_save_predictions(self):
+        """Creates and saves predictions for images given to the class"""
         prediction_dir = os.path.join(self.save_path, "prediction", "predictions")
         prediction_image_dir = os.path.join(self.save_path, "prediction", "images")
 
@@ -85,7 +109,7 @@ class CreateSubmission():
                 # Get predictions
                 predictions = self.model.predict(batch)
 
-                # Resize predictions (if necessary)
+                # Resize predictions
                 predictions = self.resize_predictions(predictions)
 
                 # Iterate over each prediction in the batch
@@ -97,7 +121,7 @@ class CreateSubmission():
                     binary_image.save(raw_pred_path)
 
                     # Save the black-and-white (scaled) prediction as a PNG
-                    bw_pred = (pred.squeeze() * 255).astype(np.uint8)  # Scale to [0, 255]
+                    bw_pred = (pred.squeeze() * 255).astype(np.uint8)
                     bw_image = Image.fromarray(bw_pred)
                     bw_image_path = os.path.join(prediction_image_dir, f"prediction_image_{prediction_count}.png")
                     bw_image.save(bw_image_path)

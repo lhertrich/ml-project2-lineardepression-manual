@@ -1,7 +1,6 @@
 import os
 import torchvision.transforms as T
 import torch
-import json
 from utils.helpers import set_seed
 from utils.train_evaluate import TrainAndEvaluate
 from .segformer_dataset import SegformerRoadSegmentationDataset

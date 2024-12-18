@@ -9,8 +9,18 @@ from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_sc
 
 
 class TrainAndEvaluate():
-    def __init__(self, model, train_loader, validation_loader, test_loader, criterion, epochs, save_dir, save=False):
-        """Initializes an object to train and evaluate a given model"""
+    def __init__(self, model, train_loader, validation_loader, test_loader, criterion, epochs, save_dir):
+        """Initializes a TrainAndEvaluate object to train and evaluate a given model
+        
+        Args:
+            model: Object, the model to train
+            train_loader: Dataloader, the dataloader providing the training data
+            validation_loader: Dataloader, the dataloader providing the validation data
+            test_loader: Dataloader, the dataloader providing the test data
+            criterion: Object, the loss function to use for training
+            epochs: int, the number of epochs for training
+            save_dir: string, the directory where to save the training results
+        """
         self.model = model
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.train_loader = train_loader
@@ -19,25 +29,25 @@ class TrainAndEvaluate():
         self.criterion = criterion
         self.epochs = epochs
         self.save_dir = save_dir
+        # Create path to save model states during training and initialize dictionary to track metrics
         self.model_dir = os.path.join(save_dir, f"{criterion.__class__.__name__}")
         os.makedirs(self.model_dir, exist_ok=True)
         self.model_save_path = os.path.join(self.model_dir, f"trained_model.pt")
-        self.save = save
         self.evaluation_metrics = {}
 
     
     def evaluate_model(self, patch_size=16, threshold=0.25):
         """ Evaluates the model on the given patchsize with the given threshold based on f1 score, accuracy, precision and recall
 
-            Args:
-                patch_size: int, the size of patches which are aggregated to a prediction
-                threshold: float, the threshold for the decision how an aggregated patch is classified
+        Args:
+            patch_size: int, the size of patches which are aggregated to a prediction
+            threshold: float, the threshold for the decision how an aggregated patch is classified
 
-            Returns:
-                f1: float, the calculated f1 score
-                accuracy: float, the calculated accuracy
-                precision: float, the calculated precision
-                recall: float, the calculated recall
+        Returns:
+            f1: float, the calculated f1 score
+            accuracy: float, the calculated accuracy
+            precision: float, the calculated precision
+            recall: float, the calculated recall
         """
         all_preds = []
         all_targets = []
@@ -168,10 +178,10 @@ class TrainAndEvaluate():
     def run(self):
         """ Trains the model, evaluates it and saves training and evaluation losses as well as sample outputs
 
-            Returns:
-                best_f1: float, the best f1 score of the model on the patched predictions after self.epochs epochs
-                best_threshold: float, the threshold used to achieve the best f1 score
-                best_epoch: int, the epoch with the smalles evaluation loss
+        Returns:
+            best_f1: float, the best f1 score of the model on the patched predictions after self.epochs epochs
+            best_threshold: float, the threshold used to achieve the best f1 score
+            best_epoch: int, the epoch with the smalles evaluation loss
         """
         # Train model
         self.model.train(self.train_loader, self.validation_loader, self.criterion, self.model_save_path, epochs=self.epochs)

@@ -4,7 +4,6 @@ from segmentation_models_pytorch.encoders import get_preprocessing_fn
 from torchvision.transforms.functional import InterpolationMode
 import torchvision.transforms as T
 import torch
-import numpy as np
 import os
 
 class UnetPlusPlusRoadSegmentationDatasetSubmission(Dataset):
