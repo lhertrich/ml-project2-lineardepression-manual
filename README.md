@@ -86,7 +86,6 @@ To recreate our results, you can simply run the `run.py` file in the root direct
 ```bash
 python run.py
 ```
-from the root directory.
 This file trains two models with the external chicago dataset and combines them to create a `final_submission.csv` file on the root level. We recommend using CUDA to create the submission. The runtime of this file with support of an A100 GPU on Google Colab was around 25 minutes. 
 
 To recreate our results when testing different models, you can run:
