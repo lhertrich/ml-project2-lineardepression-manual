@@ -13,7 +13,7 @@ To use this project follow the setup instructions provided. You can use a `conda
 
 1. Install Anaconda if not already installed.
 
-2. Create a new Conda environment:
+2. Create a new conda environment:
    ```bash
    conda create -n project_env python=3.11
    ```
