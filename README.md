@@ -30,7 +30,7 @@ To use this project follow the setup instructions provided. You can use a `conda
     Visit https://pytorch.org and follow the instructions to install pytorch on your system. Take care to install the CUDA version if you want to use GPU support locally.
 
 6. Install project dependencies:
-    After installing pytorch successfully install the project dependencies with pip by running the command:
+    After installing pytorch successfully install the project dependencies with `pip` by running the command:
     ```bash
    pip install -r requirements.txt
    ```
@@ -93,4 +93,4 @@ To recreate our results when testing different models, you can run:
 ```bash
 python -m models.model_name.model_name_train
 ```
-Except for `combined_model` which was only used for submission and `logistic_regression` which was only used once to create a simple baseline. The produced results, like train and validation loss plot and sample predictions, are then stored in the `trained_models` folder
+Except for `combined_model` which was only used for submission and `logistic_regression` which was only used once to create a simple baseline. The produced results, like train and validation loss plot and sample predictions, are then stored in the `trained_models` folder.
