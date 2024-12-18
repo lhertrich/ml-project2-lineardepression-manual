@@ -98,6 +98,7 @@ class SegFormer:
             epoch_loss = 0.0
             total_samples = 0
             for batch in dataloader:
+                print(f"Starting batch in epoch {epoch + 1}: {total_samples}")
                 images, masks = batch
 
                 images = images.to(self.device)
