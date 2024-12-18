@@ -1,4 +1,4 @@
-# Road Segmentation using Machine Learning
+# Road Segmentation with Machine Learning
 This is the repository for the project 2 of the course CS433 - Machine Learning at EPFL in 2024/25 for the group lineardepression. It was created manually because GitHub classroom is not working properly.
 
 This repository contains all files used to create the results mentioned in the project report. The goal of the project is to do binary semantic segmenation of roads from satellite images. Therefore different models where tested and a combination of DeepLabV3+ and SegFormer was found to provide the best result with an AICrowd *F1*-score of **0.914**. Please follow the instructions below to use this project and have a look at the results section to recreate our results.
@@ -87,8 +87,10 @@ To recreate our results, you can simply run the `run.py` file in the root direct
 python run.py
 ```
 from the root directory.
-This file trains two models with the external chicago dataset and combines them to create a `final_submission.csv` file on the root level. We recommend using CUDA to create the submission. The runtime of this file with support of an A100 GPU on Google Colab was around 25 minutes. To recreate our results when testing different models, you can run:
+This file trains two models with the external chicago dataset and combines them to create a `final_submission.csv` file on the root level. We recommend using CUDA to create the submission. The runtime of this file with support of an A100 GPU on Google Colab was around 25 minutes. 
+
+To recreate our results when testing different models, you can run:
 ```bash
 python -m models.model_name.model_name_train
 ```
-Except for `combined_model` which was only used for submission and `logistic_regression` which was only used once to create a simple baseline.
+Except for `combined_model` which was only used for submission and `logistic_regression` which was only used once to create a simple baseline. The produced results, like train and validation loss plot and sample predictions, are then stored in the `trained_models` folder
