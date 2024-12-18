@@ -1,7 +1,7 @@
 # Road Segmentation with Machine Learning
 This is the repository for the project 2 of the course CS433 - Machine Learning at EPFL in 2024/25 for the group lineardepression. It was created manually because GitHub classroom is not working properly.
 
-This repository contains all files used to create the results mentioned in the project report. The goal of the project is to do binary semantic segmenation of roads from satellite images. Therefore different models where tested and a combination of DeepLabV3+ and SegFormer was found to provide the best result with an AICrowd *F1*-score of **0.914**. Please follow the instructions below to use this project and have a look at the results section to recreate our results.
+This repository contains all files used to create the results mentioned in the project report. The goal of the project is to do binary semantic segmenation of roads from satellite images. Therefore different models were tested and a combination of DeepLabV3+ and SegFormer was found to provide the best result with an AICrowd *F1*-score of **0.914**. Please follow the instructions below to use this project and have a look at the results section to recreate our results.
 
 # Project Setup Instructions
 
